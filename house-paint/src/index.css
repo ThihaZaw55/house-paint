@@ -1,0 +1,159 @@
+:root {
+  --orange: #ff952a;
+}
+* {
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  font-size: large;
+}
+html {
+  scroll-behavior: smooth;
+  scroll-snap-type: mandatory;
+}
+body {
+  font-family: Roboto, "Open Sans", "Helvetica Neue", sans-serif;
+}
+.orange {
+  background-color: var(--orange);
+}
+.text-orange {
+  color: var(--orange);
+}
+header {
+  border-bottom: 2px solid #ffecd8;
+  z-index: 9;
+  transition: top 0.3s ease-in-out;
+}
+nav ul li {
+  transition: 0.2s;
+}
+nav ul li:hover:not(#menu),
+#sidebar li:hover:not(#close),
+footer nav .nav-link:hover {
+  font-weight: bold;
+  background-color: rgba(255, 251, 251, 0.4);
+  border-radius: 10px;
+  color: initial;
+}
+/* Sidebar */
+#sidebar {
+  display: none;
+  position: fixed;
+  padding: 0;
+  top: 0;
+  right: -100%;
+  z-index: 999;
+  color: white;
+  /* box-shadow: -5px 0 10px #ffffff; */
+  width: 0px;
+  background-color: rgba(255, 255, 255, 0.9);
+  transition: width 0.7s;
+}
+
+#sidebar li {
+  width: 100%;
+}
+/* Sidebar */
+section {
+  margin: 0;
+  padding: 0;
+}
+/* Product aside */
+aside {
+  display: block;
+  /* background-color: var(--orange); */
+  width: auto;
+  height: 100vh;
+  /* position: fixed; */
+  /* top: 5;
+  left: 0; */
+  z-index: 0;
+}
+
+.container {
+  display: inline-block;
+  cursor: pointer;
+}
+
+.bar1,
+.bar2,
+.bar3 {
+  width: 35px;
+  height: 5px;
+  background-color: #333;
+  margin: 6px 0;
+  transition: 0.4s;
+}
+
+.change .bar1 {
+  transform: translate(0, 11px) rotate(-45deg);
+}
+
+.change .bar2 {
+  opacity: 0;
+}
+
+.change .bar3 {
+  transform: translate(0, -11px) rotate(45deg);
+}
+
+aside .nav a {
+  padding-bottom: 10px;
+  transition: all 0.5s linear;
+}
+
+aside .nav a:hover {
+  text-indent: 15px;
+  font-weight: bold;
+  color: black;
+}
+/* Product aside */
+
+/* Product Card */
+#product-card {
+  /* position: fixed;
+  top: 120px;
+  right: 0px; */
+}
+
+/* Product Card */
+
+/* Service */
+
+#center {
+  top: 10%;
+  right: 40%;
+  transform: translate(-50% -50%);
+}
+/* Service */
+
+.show {
+  display: block;
+}
+.hide {
+  display: none;
+}
+/* Tablet */
+@media (max-width: 991px) {
+  #sidemap li:not(#menu) {
+    display: none;
+  }
+  #sidebar {
+    /* width: 250px; */
+    display: block;
+    right: 0;
+  }
+  #product-card {
+    position: inherit;
+    width: 100%;
+  }
+}
+/* Tablet */
+
+/* Moblie View */
+@media (max-width: 400px) {
+  #sidebar {
+    width: 100%;
+  }
+}
