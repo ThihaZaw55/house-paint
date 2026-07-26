@@ -8,7 +8,11 @@ const Category: React.FC = () => {
   const [items, setItems] = React.useState<PaintItem[]>([
     {
       id: 1,
-      category: "Colorful",
+      category: "Proshell PR77 Red",
+    },
+    {
+      id: 2,
+      category: "UE-9000",
     },
   ]);
 

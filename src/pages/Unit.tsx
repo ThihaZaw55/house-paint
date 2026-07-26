@@ -1,23 +1,36 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
-interface PaintItem {
+interface PaintUnit {
   id: number;
   unit: string;
 }
-const Unit: React.FC = () => {
-  const [items, setItems] = React.useState<PaintItem[]>([
-    {
-      id: 1,
-      unit: "1 Gallon",
-    },
-  ]);
 
-  const [form, setForm] = useState<PaintItem>({
+const DEFAULT_UNITS: PaintUnit [] = [
+  {
+      id: 1, unit: "1 Gallon",
+  },
+] 
+ const STORAGE_KEY = "paint_units"
+
+const Unit: React.FC = () => {
+
+  const [units, setunits] = React.useState<PaintUnit[]>( ()  => {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    return saved ? JSON.parse(saved) : DEFAULT_UNITS
+  });
+
+  const [form, setForm] = useState<PaintUnit>({
     id: 0,
     unit: "",
   });
 
   const [isEditing, setIsEditing] = useState(false);
+  const [errors, setErrors] = useState({ item: "" });
+
+    // 2. AUTO-SAVE (Persists Create, Update, and Delete operations)
+    useEffect(() => {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(units));
+    }, [units]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -33,28 +46,33 @@ const Unit: React.FC = () => {
     setIsEditing(false);
   };
 
+// CREATE & UPDATE
   const handleSave = () => {
-    if (isEditing) {
-      setItems(items.map((item) => (item.id === form.id ? form : item)));
-    } else {
-      setItems([
-        ...items,
-        {
-          ...form,
-          id: Date.now(),
-        },
-      ]);
+    if (!form.unit.trim()) {
+      setErrors({ item: "item is required" });
+      return;
     }
+
+    setErrors({ item: "" });
+
+    if (isEditing) {
+      // UPDATE: Replaces the matching item in state
+      setunits(units.map((i) => (i.id === form.id ? form : i)));
+    } else {
+      // CREATE: Appends new item to state
+      setunits([...units, { ...form, id: Date.now() }]);
+    }
+
     handleNew();
   };
 
-  const handleEdit = (item: PaintItem) => {
+  const handleEdit = (item: PaintUnit) => {
     setForm(item);
     setIsEditing(true);
   };
 
   const handleDelete = (id: number) => {
-    setItems(items.filter((item) => item.id !== id));
+    setunits(units.filter((item) => item.id !== id));
   };
 
   return (
@@ -101,7 +119,7 @@ const Unit: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {items.map((item) => (
+              {units.map((item) => (
                 <tr
                   key={item.id}
                   className="border-b hover:bg-gray-50 transition"

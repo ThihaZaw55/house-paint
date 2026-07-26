@@ -2,7 +2,6 @@ import { NavLink } from "react-router-dom";
 import SidebarItem from "./SidebarItem";
 import {
   PaintbrushVertical,
-  ChartColumnStackedIcon,
   Boxes,
   Box,
   ShoppingCart,
@@ -11,29 +10,30 @@ import {
   Menu,
 } from "lucide-react";
 import { useState } from "react";
+import Logo from "../assets/Logo.jpg";
 
 export default function Sidebar() {
   const [open, setOpen] = useState(true);
   return (
     <aside
       className={`sticky top-0 h-screen bg-white shadow-lg transition-all duration-300 ${
-        open ? "w-60" : "w-20"
+        open ? "w-35" : "w-15"
       }`}
     >
-      <div className="flex items-center justify-between p-4 border-b">
+      <div className="flex items-center justify-between p-2 border-b">
         {open && (
-          <h1 className="text-xl font-bold">
+          // <h1 className="text-xl font-bold">
             <img
-              src="./src/assets/Si Thu Paint.jpeg"
+              src={Logo}
               alt="Logo"
-              className="h-8 w-8 rounded-full"
+              className="h-10 w-10 rounded-full"
             />
-          </h1>
+          // </h1>
         )}
         <Menu className="cursor-pointer" onClick={() => setOpen(!open)} />
       </div>
 
-      <nav className="mt-4 space-y-2">
+      <nav className="mt-2 space-y-2">
         <NavLink
           to="/productlist"
           className={({ isActive }) =>
@@ -55,24 +55,18 @@ export default function Sidebar() {
           className={({ isActive }) =>
             `block rounded-lg ${isActive ? "bg-gray-100" : "hover:bg-gray-100"}`
           }
-          to="/item"
+          to="/product"
         >
-          <SidebarItem icon={PaintbrushVertical} label="Item" open={open} />
+          <SidebarItem icon={Box} label="Product" open={open} />
         </NavLink>
-
         <NavLink
           className={({ isActive }) =>
             `block rounded-lg ${isActive ? "bg-gray-100" : "hover:bg-gray-100"}`
           }
-          to="/category"
+          to="/item"
         >
-          <SidebarItem
-            icon={ChartColumnStackedIcon}
-            label="Category"
-            open={open}
-          />
+          <SidebarItem icon={PaintbrushVertical} label="Item" open={open} />
         </NavLink>
-
         <NavLink
           className={({ isActive }) =>
             `block rounded-lg ${isActive ? "bg-gray-100" : "hover:bg-gray-100"}`
@@ -81,14 +75,7 @@ export default function Sidebar() {
         >
           <SidebarItem icon={Boxes} label="Unit" open={open} />
         </NavLink>
-        <NavLink
-          className={({ isActive }) =>
-            `block rounded-lg ${isActive ? "bg-gray-100" : "hover:bg-gray-100"}`
-          }
-          to="/product"
-        >
-          <SidebarItem icon={Box} label="Product" open={open} />
-        </NavLink>
+        
         <NavLink
           className={({ isActive }) =>
             `block rounded-lg ${isActive ? "bg-gray-100" : "hover:bg-gray-100"}`

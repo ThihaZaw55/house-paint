@@ -13,7 +13,7 @@ import { CartProvider } from "./context/CartContext";
 
 export default function App() {
   return (
-    <BrowserRouter basename="/house-paint">
+    <BrowserRouter basename="/house-paint/">
       <CartProvider>
         <Routes>
           <Route path="/" element={<Layout />}>
