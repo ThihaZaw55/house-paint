@@ -7,14 +7,13 @@ import Sale from "./pages/ProductList";
 import Item from "./pages/Item";
 import Product from "./pages/Product";
 import Income from "./pages/Income";
-
 import Error from "./components/404";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { CartProvider } from "./context/CartContext";
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/productlist/">
       <CartProvider>
         <Routes>
           <Route path="/" element={<Layout />}>
