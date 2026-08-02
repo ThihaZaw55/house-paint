@@ -8,7 +8,6 @@ import {
   CircleDollarSign,
   BanknoteArrowUp,
   Menu,
-  type LucideIcon,
 } from "lucide-react";
 import { useState } from "react";
 import Logo from "../assets/Logo.jpg";

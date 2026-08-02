@@ -35,13 +35,13 @@ export default function ProductCard({
     <div className="relative backdrop-blur-lg bg-white/40 border border-white/30 rounded-2xl shadow-lg hover:shadow-2xl hover:scale-105 transition duration-300 p-4">
       {sale && (
         <span className="absolute top-3 left-3 bg-red-500 text-white text-xs px-2 py-1 rounded">
-          SALE
+          Out of Stock
         </span>
       )}
       <img
         src={image}
         alt={name}
-        className="h-48 w-full object-cover rounded-xl"
+        className="h-40 w-full object-cover rounded-xl"
       />
       <h2 className="mt-3 font-semibold text-lg">{name}</h2>
       <div className="flex mt-1 text-gray-500 text-sm">{colour}</div>

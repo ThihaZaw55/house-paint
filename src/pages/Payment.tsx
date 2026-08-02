@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useCart } from "../context/CartContext";
+import PageTitle from "../components/PageTitle";
 
 export default function Payment() {
   const { cart, removeFromCart } = useCart();
@@ -17,7 +18,7 @@ export default function Payment() {
 
   return (
     <div className="">
-      <h1 className="text-3xl font-bold mb-6">Payment</h1>
+      <PageTitle title="Payments" />
 
       <div className="grid md:grid-cols-2 gap-8">
         <div className="bg-white p-6 rounded-xl shadow">

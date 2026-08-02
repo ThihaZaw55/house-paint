@@ -7,6 +7,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import PageTitle from "../components/PageTitle";
 
 const salesData = [
   { month: "Jan", sales: 120 },
@@ -25,9 +26,8 @@ const salesData = [
 
 export default function Dashboard() {
   return (
-    <div className="flex-1 overflow-y-auto p-5 bg-gray-100 min-h-screen">
-      <h1 className="text-3xl font-bold mb-5">Income</h1>
-
+    <div className="flex-1 overflow-y-auto bg-gray-100 min-h-screen">
+      <PageTitle title="Income" />
       <div className="grid md:grid-cols-4 gap-6 mb-5">
         <div className="bg-white p-6 rounded-xl shadow">
           <p className="text-gray-500">Total Revenue</p>

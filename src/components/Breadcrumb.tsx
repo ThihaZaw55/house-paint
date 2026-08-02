@@ -6,7 +6,7 @@ const Breadcrumb = () => {
   const pathnames = location.pathname.split("/").filter((x) => x);
 
   return (
-    <div className="text-sm text-gray-500 mb-4">
+    <div className="text-sm text-gray-500 mb-2">
       <ul className="inline-flex items-center space-x-1 md:space-x-2 rtl:space-x-reverse">
         <li className="inline-flex items-center">
           <Link
@@ -43,7 +43,7 @@ const Breadcrumb = () => {
               className=" space-x-1.5 inline-flex items-center text-sm font-medium text-body hover:text-fg-brand hover:text-blue-600"
             >
               <span>{">"}</span>
-              <Link to={routeTo} className="capitalize hover:text-blue-600">
+              <Link to={routeTo} className="capitalize hover:text-blue-400">
                 {name}
               </Link>
             </li>

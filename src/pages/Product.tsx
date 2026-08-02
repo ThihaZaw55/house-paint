@@ -1,4 +1,5 @@
 import React, { useState, useEffect, type ChangeEvent } from "react";
+import PageTitle from "../components/PageTitle";
 
 interface Product {
   id: number;
@@ -6,7 +7,8 @@ interface Product {
   unit: string;
   category: string;
   quantity: number | string;
-  price: number | string;
+  buyPrice: number | string;
+  salePrice: number | string;
   description: string;
   createdDate: string;
   imagePath?: string;
@@ -67,7 +69,8 @@ const ProductComponent: React.FC = () => {
               unit: "Gallon",
               category: "Interior",
               quantity: 100,
-              price: 4500,
+              buyPrice: 4500,
+              salePrice: 5500,
               description: "Smooth finish interior wall paint",
               createdDate: "2026-03-05",
             },
@@ -84,7 +87,8 @@ const ProductComponent: React.FC = () => {
     unit: "",
     category: "",
     quantity: "",
-    price: "",
+    buyPrice: "",
+    salePrice: "",
     description: "",
     createdDate: "",
     imagePath: "",
@@ -123,7 +127,15 @@ const ProductComponent: React.FC = () => {
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
-    const { name, value } = e.target;
+    const { name, value, type } = e.target;
+    if (type === "number") {
+      setForm((prev) => ({
+        ...prev,
+        [name]: value === "" ? "" : Number(value),
+      }));
+      return;
+    }
+
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -134,7 +146,8 @@ const ProductComponent: React.FC = () => {
       unit: "",
       category: "",
       quantity: "",
-      price: "",
+      buyPrice: "",
+      salePrice: "",
       description: "",
       createdDate: "",
       imagePath: "",
@@ -144,18 +157,25 @@ const ProductComponent: React.FC = () => {
   };
 
   const handleSave = () => {
-    if (!form.item) return;
+    if (!form.item || !form.unit) return;
+
+    const safeProduct: Product = {
+      ...form,
+      quantity: Number(form.quantity) || 0,
+      buyPrice: Number(form.buyPrice) || 0,
+      salePrice: Number(form.salePrice) || 0,
+      id: isEditing ? form.id : Math.floor(new Date().getTime()),
+      createdDate: isEditing
+        ? form.createdDate || new Date().toISOString().split("T")[0]
+        : new Date().toISOString().split("T")[0],
+    };
 
     if (isEditing) {
-      setItems((prev) => prev.map((item) => (item.id === form.id ? form : item)));
+      setItems((prev) => prev.map((item) => (item.id === form.id ? safeProduct : item)));
     } else {
-      const newProduct: Product = {
-        ...form,
-        id: Date.now(),
-        createdDate: new Date().toISOString().split("T")[0],
-      };
-      setItems((prev) => [...prev, newProduct]);
+      setItems((prev) => [...prev, safeProduct]);
     }
+
     handleNew();
   };
 
@@ -226,91 +246,130 @@ const ProductComponent: React.FC = () => {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">House Paint Product</h1>
+    <div className="max-w-7xl mx-auto">
+    
+      <PageTitle title="Products" />
 
       {/* Product Form Grid */}
-      <form onSubmit={(e) => e.preventDefault()} className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <select
-          name="item"
-          value={form.item}
-          onChange={handleChange}
-          className="h-10 px-3 bg-slate-50 border border-slate-300 rounded-md text-sm text-slate-800 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-        >
-          <option value="" disabled>Select an item</option>
-          {paintOptions.map((option) => (
-            <option key={option.id} value={option.item}>{option.item}</option>
-          ))}
-        </select>
+      <div className="bg-white p-6 rounded-4xl shadow-sm border border-slate-200 mb-6">
+        <form onSubmit={(e) => e.preventDefault()} className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <label className="space-y-2 text-sm text-slate-700">
+            <span className="font-medium">Paint Item</span>
+            <select
+              name="item"
+              value={form.item}
+              onChange={handleChange}
+              className="h-12 w-full px-3 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+            >
+              <option value="" disabled>Select an item</option>
+              {paintOptions.map((option) => (
+                <option key={option.id} value={option.item}>{option.item}</option>
+              ))}
+            </select>
+          </label>
 
-        <select
-          name="unit"
-          value={form.unit}
-          onChange={handleChange}
-          className="h-10 px-3 bg-slate-50 border border-slate-300 rounded-md text-sm text-slate-800 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-        >
-          <option value="" disabled>Select a Unit</option>
-          {unitOptions.map((option) => (
-            <option key={option.id} value={option.unit}>{option.unit}</option>
-          ))}
-        </select>
+          <label className="space-y-2 text-sm text-slate-700">
+            <span className="font-medium">Unit</span>
+            <select
+              name="unit"
+              value={form.unit}
+              onChange={handleChange}
+              className="h-12 w-full px-3 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+            >
+              <option value="" disabled>Select a unit</option>
+              {unitOptions.map((option) => (
+                <option key={option.id} value={option.unit}>{option.unit}</option>
+              ))}
+            </select>
+          </label>
 
-        <input
-          name="quantity"
-          type="number"
-          value={form.quantity}
-          onChange={handleChange}
-          placeholder="Quantity"
-          className="h-10 px-3 bg-slate-50 border border-slate-300 rounded-md text-sm text-slate-800 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-        />
+          <label className="space-y-2 text-sm text-slate-700">
+            <span className="font-medium">Quantity</span>
+            <input
+              name="quantity"
+              type="number"
+              min={0}
+              step={1}
+              inputMode="numeric"
+              value={form.quantity}
+              onChange={handleChange}
+              placeholder="Quantity"
+              className="h-12 w-full px-3 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+            />
+          </label>
 
-        <input
-          name="price"
-          type="number"
-          value={form.price}
-          onChange={handleChange}
-          placeholder="Price"
-          className="h-10 px-3 bg-slate-50 border border-slate-300 rounded-md text-sm text-slate-800 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-        />
+          <label className="space-y-2 text-sm text-slate-700">
+            <span className="font-medium">Description</span>
+            <input
+              name="description"
+              value={form.description}
+              onChange={handleChange}
+              placeholder="Description"
+              className="h-12 w-full px-3 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+            />
+          </label>
 
-        <input
-          name="description"
-          value={form.description}
-          onChange={handleChange}
-          placeholder="Description"
-          className="h-10 px-3 bg-slate-50 border border-slate-300 rounded-md text-sm text-slate-800 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-        />
+          <label className="space-y-2 text-sm text-slate-700">
+            <span className="font-medium">Buy Price</span>
+            <input
+              name="buyPrice"
+              type="number"
+              min={0}
+              step={100}
+              inputMode="numeric"
+              value={form.buyPrice}
+              onChange={handleChange}
+              placeholder="Buy Price"
+              className="h-12 w-full px-3 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+            />
+          </label>
 
-        {/* Compact Image Trigger Slot */}
-        <div className="flex items-center gap-2 h-10">
-          <button
-            type="button"
-            onClick={handleOpenModal}
-            className="h-10 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-md transition-colors whitespace-nowrap cursor-pointer shrink-0"
-          >
-            Choose Image
-          </button>
+          <label className="space-y-2 text-sm text-slate-700">
+            <span className="font-medium">Sale Price</span>
+            <input
+              name="salePrice"
+              type="number"
+              min={0}
+              step={100}
+              inputMode="numeric"
+              value={form.salePrice}
+              onChange={handleChange}
+              placeholder="Sale Price"
+              className="h-12 w-full px-3 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+            />
+          </label>
 
-          {image ? (
-            <div className="flex items-center justify-between h-10 px-3 bg-slate-100 border border-slate-300 rounded-md text-xs text-slate-700 w-full overflow-hidden">
-              <span className="truncate font-medium flex items-center gap-1.5" title={image.name}>
-                📁 <span>{image.name}</span>
-              </span>
-              <button
-                type="button"
-                onClick={handleClearImage}
-                className="text-red-500 hover:text-red-700 font-bold ml-2 shrink-0 cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center h-10 px-3 bg-slate-50 border border-dashed border-slate-300 rounded-md text-xs text-slate-400 w-full">
-              No file selected
-            </div>
-          )}
-        </div>
-      </form>
+          {/* Compact Image Trigger Slot */}
+          <div className="flex items-center gap-2 h-12 md:col-span-4">
+            <button
+              type="button"
+              onClick={handleOpenModal}
+              className="h-12 px-5 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white text-sm font-medium rounded-xl transition-colors whitespace-nowrap cursor-pointer"
+            >
+              Choose Image
+            </button>
+
+            {image ? (
+              <div className="flex items-center justify-between h-12 px-4 bg-slate-100 border border-slate-300 rounded-xl text-xs text-slate-700 w-full overflow-hidden">
+                <span className="truncate font-medium flex items-center gap-1.5" title={image.name}>
+                  📁 <span>{image.name}</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={handleClearImage}
+                  className="text-red-500 hover:text-red-700 font-bold ml-2 shrink-0 cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center h-12 px-4 bg-slate-50 border border-dashed border-slate-300 rounded-xl text-xs text-slate-400 w-full">
+                No file selected
+              </div>
+            )}
+          </div>
+        </form>
+      </div>
 
       {/* Form Action Buttons */}
       <div className="flex gap-3 mb-8">
@@ -324,7 +383,7 @@ const ProductComponent: React.FC = () => {
         <button
           type="button"
           onClick={handleSave}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-5 py-2 rounded-md cursor-pointer transition-colors"
+          className="bg-blue-400 hover:bg-blue-500 active:bg-blue-600 text-white text-sm font-medium px-5 py-2 rounded-md cursor-pointer transition-colors"
         >
           {isEditing ? "Update" : "Save"}
         </button>
@@ -340,7 +399,8 @@ const ProductComponent: React.FC = () => {
               <th className="p-3">Unit</th>
               <th className="p-3">Image Path</th>
               <th className="p-3">Quantity</th>
-              <th className="p-3">Price</th>
+              <th className="p-3">Buy Price</th>
+              <th className="p-3">Sale Price</th>
               <th className="p-3">Description</th>
               <th className="p-3">Created Date</th>
               <th className="p-3 text-center">Actions</th>
@@ -356,7 +416,8 @@ const ProductComponent: React.FC = () => {
                   {item.imagePath || "—"}
                 </td>
                 <td className="p-3 text-slate-600">{item.quantity}</td>
-                <td className="p-3 text-slate-600">{item.price} K</td>
+                <td className="p-3 text-slate-600">{item.buyPrice} K</td>
+                <td className="p-3 text-slate-600">{item.salePrice} K</td>
                 <td className="p-3 text-slate-600">{item.description}</td>
                 <td className="p-3 text-slate-500">{item.createdDate}</td>
                 <td className="p-3 flex gap-2 justify-center">

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import PageTitle from "../components/PageTitle";
 
 interface PaintUnit {
   id: number;
@@ -78,9 +79,7 @@ const Unit: React.FC = () => {
   return (
     <>
       <div className="">
-        <h1 className="text-3xl font-bold text-gray-800 mb-6">
-          House Paint Unit
-        </h1>
+        <PageTitle title="Units" />
         <form className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <input
             name="unit"
@@ -92,6 +91,9 @@ const Unit: React.FC = () => {
                      placeholder:text-slate-400
                      focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
           />
+          {errors.item && (
+            <p className="mt-2 text-sm text-red-600">{errors.item}</p>
+          )}
         </form>
 
         <div className="flex gap-4 mb-6">
@@ -103,7 +105,7 @@ const Unit: React.FC = () => {
           </button>
           <button
             onClick={handleSave}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg"
+            className="bg-blue-400 hover:bg-blue-500 active:bg-blue-600 text-white px-5 py-2 rounded-lg"
           >
             Save
           </button>

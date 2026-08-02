@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import PageTitle from "../components/PageTitle";
 
 interface PaintItem {
   id: number;
@@ -75,9 +76,7 @@ const Item: React.FC = () => {
 
   return (
     <div className="">
-      <h1 className="text-3xl font-bold text-gray-800 mb-6">
-        House Paint Item
-      </h1>
+      <PageTitle title="Items" />
       
       <form 
         onSubmit={(e) => e.preventDefault()} 
@@ -107,7 +106,7 @@ const Item: React.FC = () => {
         <button
           type="button"
           onClick={handleSave}
-          className="bg-blue-600 hover:bg-blue-700 active:bg-blue-500 cursor-pointer text-white px-5 py-2 rounded-lg"
+          className="bg-blue-400 hover:bg-blue-500 active:bg-blue-600 cursor-pointer text-white px-5 py-2 rounded-lg"
         >
           Save
         </button>

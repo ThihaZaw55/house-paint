@@ -1,5 +1,6 @@
 import ProductCard from "../components/ProductCart";
 import room5 from "../assets/room5.jpg";
+import PageTitle from "../components/PageTitle";
 const products = [
   {
     id: 1,
@@ -56,10 +57,9 @@ const products = [
 
 export default function ProductList() {
   return (
-    <div className="">
-      <h1 className="text-3xl font-bold text-center mb-10">Paint Products</h1>
-
-      <div className="grid md:grid-cols-3 gap-8">
+    <div>
+      <PageTitle title="Product List" />
+      <div className="grid md:grid-cols-4 gap-4">
         {products.map((p) => (
           <ProductCard key={p.id} {...p} />
         ))}
