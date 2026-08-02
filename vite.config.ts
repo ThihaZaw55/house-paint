@@ -4,5 +4,8 @@ import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  base: '/house-paint/',
+  base: "/house-paint/",
+  build: {
+    outDir: "docs",
+  },
 });

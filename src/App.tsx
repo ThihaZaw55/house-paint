@@ -8,12 +8,12 @@ import Item from "./pages/Item";
 import Product from "./pages/Product";
 import Income from "./pages/Income";
 import Error from "./components/404";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HashRouter, Routes, Route } from "react-router-dom";
 import { CartProvider } from "./context/CartContext";
 
 export default function App() {
   return (
-    <BrowserRouter basename="/house-paint/">
+    <HashRouter>
       <CartProvider>
         <Routes>
           <Route path="/" element={<Layout />}>
@@ -29,6 +29,6 @@ export default function App() {
           </Route>
         </Routes>
       </CartProvider>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
