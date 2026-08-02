@@ -8,11 +8,14 @@ import {
   CircleDollarSign,
   BanknoteArrowUp,
   Menu,
+  type LucideIcon,
 } from "lucide-react";
 import { useState } from "react";
 import Logo from "../assets/Logo.jpg";
+import { useCart } from "../context/CartContext";
 
 export default function Sidebar() {
+  const { cartCount } = useCart();
   const [open, setOpen] = useState(true);
   return (
     <aside
@@ -49,7 +52,12 @@ export default function Sidebar() {
           }
           to="/payment"
         >
-          <SidebarItem icon={CircleDollarSign} label="Payment" open={open} />
+          <SidebarItem
+            icon={CircleDollarSign}
+            label="Payment"
+            open={open}
+            badgeCount={cartCount}
+          />
         </NavLink>
         <NavLink
           className={({ isActive }) =>

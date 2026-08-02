@@ -11,13 +11,18 @@ interface CartItem {
 interface CartContextType {
   cart: CartItem[];
   addToCart: (item: CartItem) => void;
+  cartCount: number;
   removeFromCart: (id: number) => void;
 }
 
 const CartContext = createContext<CartContextType | null>(null);
 
 export const useCart = () => {
-  return useContext(CartContext)!;
+  const context = useContext(CartContext);
+  if (!context) {
+    throw new Error("useCart must be used within a CartProvider");
+  }
+  return context;
 };
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
@@ -36,12 +41,15 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       return [...prev, item];
     });
   };
+
+  const cartCount = cart.reduce((total, item) => total + item.qty, 0);
+
   const removeFromCart = (id: number) => {
     setCart((prev) => prev.filter((item) => item.id !== id));
   };
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart }}>
+    <CartContext.Provider value={{ cart, addToCart, cartCount, removeFromCart }}>
       {children}
     </CartContext.Provider>
   );
