@@ -1,7 +1,7 @@
 import Layout from "./components/Layout";
 import Home from "./pages/Home";
 import Unit from "./pages/Unit";
-import Category from "./pages/Category";
+import Purchase from "./pages/Purchase";
 import Payment from "./pages/Payment";
 import Sale from "./pages/ProductList";
 import Item from "./pages/Item";
@@ -19,9 +19,9 @@ export default function App() {
           <Route path="/" element={<Layout />}>
             <Route index element={<Home />} />
             <Route path="unit" element={<Unit />}></Route>
-            <Route path="category" element={<Category />}></Route>
             <Route path="item" element={<Item />}></Route>
             <Route path="product" element={<Product />}></Route>
+            <Route path="purchase" element={<Purchase />}></Route>
             <Route path="productlist" element={<Sale />}></Route>
             <Route path="payment" element={<Payment />}></Route>
             <Route path="income" element={<Income />}></Route>

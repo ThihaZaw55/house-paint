@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import PageTitle from "../components/PageTitle";
 import { unitService, type UnitDTO } from "../api/unit";
+import type { AxiosError } from "axios";
 
 interface PaintUnit {
   unitID?: number;
@@ -24,6 +25,7 @@ const Unit: React.FC = () => {
   try {
     setLoading(true);
     const data = await unitService.getAll();
+
     // Ensure every item has a valid id value
     const safeData: PaintUnit[] = data.map((item) => ({
       unitID: item.unitID ?? 0,
@@ -33,7 +35,9 @@ const Unit: React.FC = () => {
     setUnits(safeData);
     setError(null);
   } catch (err) {
-    setError("Failed to fetch units");
+    const axiosError = err as AxiosError<{message?: string}>;
+    const backendError = axiosError.response?.data?.message || "Failed to fetch units";
+    setError(backendError);
     console.error(err);
   } finally {
     setLoading(false);
@@ -83,7 +87,10 @@ const Unit: React.FC = () => {
       handleNew();
       await loadUnits();
     } catch (err) {
-      setError(editId !== null ? "Failed to update unit" : "Failed to create unit");
+      const axiosError = err as AxiosError<{ message?: string }>;
+      const errorMessage = axiosError.response?.data?.message || "";
+      setError(errorMessage);
+      //setError(editId !== null ? "Failed to update unit" : "Failed to create unit");
       console.error(err);
     } finally {
       setLoading(false);

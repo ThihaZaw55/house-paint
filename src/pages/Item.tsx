@@ -1,39 +1,39 @@
 import React, { useEffect, useState } from "react";
 import PageTitle from "../components/PageTitle";
-import { unitService, type ItemDTO } from "../api/item";
+import { ItemService, type ItemDTO } from "../api/item";
 
-interface PaintUnit {
-  ItemID?: number;
-  ItemName: string;
+interface PaintItem {
+  itemID?: number;
+  itemName: string;
 }
 
 const Item: React.FC = () => {
-  const [units, setUnits] = useState<ItemDTO[]>([]);
-  const [formData, setFormData] = useState({ ItemName: "" });
+  const [items, setItems] = useState<ItemDTO[]>([]);
+  const [formData, setFormData] = useState({ itemName: "" });
   const [editId, setEditId] = useState<number | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<{ ItemName?: string }>({});
+  const [fieldErrors, setFieldErrors] = useState<{ itemName?: string }>({});
 
   useEffect(() => {
-    loadUnits();
+    loaditems();
   }, []);
 
-  // READ: Fetch all units
- const loadUnits = async () => {
+  // READ: Fetch all items
+ const loaditems = async () => {
   try {
     setLoading(true);
-    const data = await unitService.getAll();
+    const data = await ItemService.getAll();
     // Ensure every item has a valid id value
-    const safeData: PaintUnit[] = data.map((item) => ({
-      ItemID: item.ItemID ?? 0,
-      ItemName: item.ItemName,
+    const safeData: PaintItem[] = data.map((item) => ({
+      itemID: item.itemID ?? 0,
+      itemName: item.itemName,
     }));
 
-    setUnits(safeData);
+    setItems(safeData);
     setError(null);
   } catch (err) {
-    setError("Failed to fetch units");
+    setError("Failed to fetch items");
     console.error(err);
   } finally {
     setLoading(false);
@@ -51,16 +51,16 @@ const Item: React.FC = () => {
 
   // Reset form / New Action
   const handleNew = () => {
-    setFormData({ ItemName: "" });
+    setFormData({ itemName: "" });
     setEditId(null);
     setFieldErrors({});
   };
 
   // Validate Form
   const validateForm = () => {
-    const errors: { ItemName?: string } = {};
-    if (!formData.ItemName.trim()) {
-      errors.ItemName = "Unit name is required";
+    const errors: { itemName?: string } = {};
+    if (!formData.itemName.trim()) {
+      errors.itemName = "item name is required";
     }
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
@@ -75,15 +75,15 @@ const Item: React.FC = () => {
       setLoading(true);
       if (editId !== null && editId != undefined) {
         // Update existing record
-        await unitService.update(editId, formData);
+        await ItemService.update(editId, formData);
       } else {
         // Create new record
-        await unitService.create(formData);
+        await ItemService.create(formData);
       }
       handleNew();
-      await loadUnits();
+      await loaditems();
     } catch (err) {
-      setError(editId !== null ? "Failed to update unit" : "Failed to create unit");
+      setError(editId !== null ? "Failed to update item" : "Failed to create item");
       console.error(err);
     } finally {
       setLoading(false);
@@ -91,23 +91,23 @@ const Item: React.FC = () => {
   };
 
   // EDIT: Populate form for editing
-  const handleEdit = (item: PaintUnit) => {
-    setEditId(item.ItemID!);
-    setFormData({ ItemName: item.ItemName});
+  const handleEdit = (item: PaintItem) => {
+    setEditId(item.itemID!);
+    setFormData({ itemName: item.itemName});
     setFieldErrors({});
   };
 
   // DELETE: Delete record
   const handleDelete = async (id: number) => {
-    if (!window.confirm("Are you sure you want to delete this unit?")) return;
+    if (!window.confirm("Are you sure you want to delete this item?")) return;
 
     try {
       setLoading(true);
-      await unitService.delete(id);
+      await ItemService.delete(id);
       if (editId === id) handleNew();
-      await loadUnits();
+      await loaditems();
     } catch (err) {
-      setError("Failed to delete unit");
+      setError("Failed to delete item");
       console.error(err);
     } finally {
       setLoading(false);
@@ -117,7 +117,7 @@ const Item: React.FC = () => {
   return (
    <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
       {/* Page Header */}
-          <PageTitle title="Units Management" />
+          <PageTitle title="items Management" />
 
       {/* Global Error Banner */}
       {error && (
@@ -142,29 +142,29 @@ const Item: React.FC = () => {
       {/* Form Input Card */}
       <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
         <h2 className="text-sm font-semibold text-slate-800 uppercase tracking-wider mb-4">
-          {editId !== null ? "Edit Unit" : "Add New Unit"}
+          {editId !== null ? "Edit item" : "Add New item"}
         </h2>
 
         <form onSubmit={handleSave} className="flex flex-col sm:flex-row gap-4 items-start">
           <div className="w-full sm:flex-1">
-            <label htmlFor="ItemName" className="block text-xs font-medium text-slate-600 mb-1">
-              Unit Name <span className="text-red-500">*</span>
+            <label htmlFor="itemName" className="block text-xs font-medium text-slate-600 mb-1">
+              item Name <span className="text-red-500">*</span>
             </label>
             <input
-              id="ItemName"
+              id="itemName"
               type="text"
-              name="ItemName"
-              value={formData.ItemName}
+              name="itemName"
+              value={formData.itemName}
               onChange={handleChange}
               placeholder="e.g. Gallon, Liter, KG, Box"
               className={`w-full px-3.5 py-2.5 bg-slate-50 border rounded-lg text-slate-900 text-sm outline-none transition-all placeholder:text-slate-400 focus:bg-white focus:ring-2 ${
-                fieldErrors.ItemName
+                fieldErrors.itemName
                   ? "border-red-500 focus:border-red-500 focus:ring-red-100"
                   : "border-slate-300 focus:border-blue-600 focus:ring-blue-100"
               }`}
             />
-            {fieldErrors.ItemName && (
-              <p className="mt-1 text-xs text-red-600 font-medium">{fieldErrors.ItemName}</p>
+            {fieldErrors.itemName && (
+              <p className="mt-1 text-xs text-red-600 font-medium">{fieldErrors.itemName}</p>
             )}
           </div>
 
@@ -190,7 +190,7 @@ const Item: React.FC = () => {
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                 </svg>
               )}
-              {loading ? "Processing..." : editId !== null ? "Update Unit" : "Save Unit"}
+              {loading ? "Processing..." : editId !== null ? "Update Item" : "Save Item"}
             </button>
           </div>
         </form>
@@ -199,9 +199,9 @@ const Item: React.FC = () => {
       {/* Table Section */}
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-200 bg-slate-50/50 flex justify-between items-center">
-          <h3 className="text-sm font-semibold text-slate-800">Unit List</h3>
+          <h3 className="text-sm font-semibold text-slate-800">item List</h3>
           <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200">
-            Total: {units.length}
+            Total: {items.length}
           </span>
         </div>
 
@@ -210,12 +210,12 @@ const Item: React.FC = () => {
             <thead>
               <tr className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 uppercase text-[11px] tracking-wider">
                 <th className="py-3 px-5 w-24">ID</th>
-                <th className="py-3 px-5">Unit Name</th>
+                <th className="py-3 px-5">item Name</th>
                 <th className="py-3 px-5 text-right w-40">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 text-slate-700">
-              {loading && units.length === 0 ? (
+              {loading && items.length === 0 ? (
                 <tr>
                   <td colSpan={3} className="py-8 text-center text-slate-400">
                     <div className="flex flex-col items-center gap-2">
@@ -223,38 +223,38 @@ const Item: React.FC = () => {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                       </svg>
-                      Loading units...
+                      Loading items...
                     </div>
                   </td>
                 </tr>
-              ) : units.length === 0 ? (
+              ) : items.length === 0 ? (
                 <tr>
                   <td colSpan={3} className="py-12 text-center text-slate-400">
                     <div className="flex flex-col items-center gap-2">
                       <svg className="w-8 h-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                       </svg>
-                      <p className="font-medium text-slate-500">No units found</p>
-                      <p className="text-xs text-slate-400">Create your first measurement unit using the form above.</p>
+                      <p className="font-medium text-slate-500">No items found</p>
+                      <p className="text-xs text-slate-400">Create your first measurement item using the form above.</p>
                     </div>
                   </td>
                 </tr>
               ) : (
-                units.map((item) => {
-                  const isEditing = editId === item.ItemID;
+                items.map((item) => {
+                  const isEditing = editId === item.itemID;
                   return (
                     <tr
-                      key={item.ItemID}
+                      key={item.itemID}
                       className={`transition-colors hover:bg-slate-50/80 ${
                         isEditing ? "bg-blue-50/50" : ""
                       }`}
                     >
                       <td className="py-3.5 px-5 font-mono text-xs font-semibold text-slate-500">
-                        #{item.ItemID}
+                        #{item.itemID}
                       </td>
                       <td className="py-3.5 px-5 font-medium text-slate-800">
                         <div className="flex items-center gap-2">
-                          <span>{item.ItemName}</span>
+                          <span>{item.itemName}</span>
                           {isEditing && (
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-100 text-blue-800">
                               Editing
@@ -273,7 +273,7 @@ const Item: React.FC = () => {
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleDelete(item.ItemID!)}
+                            onClick={() => handleDelete(item.itemID!)}
                             className="px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors border border-transparent hover:border-red-200"
                           >
                             Delete

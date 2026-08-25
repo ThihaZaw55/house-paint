@@ -58,6 +58,21 @@ export default function Sidebar() {
             badgeCount={cartCount}
           />
         </NavLink>
+
+        <NavLink
+          className={({ isActive }) =>
+            `block rounded-lg ${isActive ? "bg-gray-100" : "hover:bg-gray-100"}`
+          }
+          to="/purchase"
+        >
+          <SidebarItem
+            icon={CircleDollarSign}
+            label="Purchase"
+            open={open}
+            badgeCount={cartCount}
+          />
+        </NavLink>
+
         <NavLink
           className={({ isActive }) =>
             `block rounded-lg ${isActive ? "bg-gray-100" : "hover:bg-gray-100"}`

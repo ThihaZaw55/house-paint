@@ -2,8 +2,8 @@ import axios from 'axios';
 
 // 1. Define the Unit DTO type matching your Spring Boot backend
 export interface ItemDTO {
-  ItemID?: number;
-  ItemName: string;
+  itemID?: number;
+  itemName: string;
 }
 
 // 2. Assign the custom instance to a variable so you can use it below
@@ -15,7 +15,7 @@ const api = axios.create({
 export default api;
 
 // 3. Add explicit types to parameters
-export const unitService = {
+export const ItemService = {
   // GET all units
   getAll: async (): Promise<ItemDTO[]> => {
     const response = await api.get<ItemDTO[]>('/api/item');
@@ -28,15 +28,15 @@ export const unitService = {
     return response.data;
   },
 
-  // POST create unit
-  create: async (unitData: ItemDTO): Promise<ItemDTO> => {
-    const response = await api.post<ItemDTO>('/api/item', unitData);
+  // POST create item
+  create: async (itemData: ItemDTO): Promise<ItemDTO> => {
+    const response = await api.post<ItemDTO>('/api/item', itemData);
     return response.data;
   },
 
-  // PUT update unit
-  update: async (id: number, unitData: ItemDTO): Promise<ItemDTO> => {
-    const response = await api.put<ItemDTO>(`/api/item/${id}`, unitData);
+  // PUT update item
+  update: async (id: number, itemData: ItemDTO): Promise<ItemDTO> => {
+    const response = await api.put<ItemDTO>(`/api/item/${id}`, itemData);
     return response.data;
   },
 
