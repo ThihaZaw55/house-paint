@@ -7,7 +7,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import PageTitle from "../components/PageTitle";
+import PageTitle from "../components/ui/PageTitle";
 
 const salesData = [
   { month: "Jan", sales: 120 },

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useCart } from "../context/CartContext";
-import PageTitle from "../components/PageTitle";
+import PageTitle from "../components/ui/PageTitle";
 
 export default function Payment() {
   const { cart, removeFromCart } = useCart();

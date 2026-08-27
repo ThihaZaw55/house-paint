@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ShoppingCart } from "lucide-react";
-import { useCart } from "../context/CartContext";
+import { useCart } from "../../context/CartContext";
 interface Props {
   id: number;
   name: string;

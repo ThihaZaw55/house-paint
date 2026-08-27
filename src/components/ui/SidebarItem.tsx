@@ -5,7 +5,7 @@ interface SidebarItemProps {
   icon: LucideIcon;
   label: string;
   open: boolean;
-  badgeCount?: number; // <--- Badge စာလုံး အရေအတွက်
+  badgeCount?: number;
 }
 
 export default function SidebarItem({

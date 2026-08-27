@@ -1,5 +1,5 @@
 import React, { useState, useEffect, type ChangeEvent } from "react";
-import PageTitle from "../components/PageTitle";
+import PageTitle from "../components/ui/PageTitle";
 
 interface Product {
   id: number;

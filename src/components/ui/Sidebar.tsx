@@ -10,8 +10,8 @@ import {
   Menu,
 } from "lucide-react";
 import { useState } from "react";
-import Logo from "../assets/Logo.jpg";
-import { useCart } from "../context/CartContext";
+import Logo from "../../assets/Logo.jpg";
+import { useCart } from "../../context/CartContext";
 
 export default function Sidebar() {
   const { cartCount } = useCart();

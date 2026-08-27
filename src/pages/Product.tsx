@@ -1,98 +1,36 @@
 import React, { useState, useEffect, type ChangeEvent } from "react";
-import PageTitle from "../components/PageTitle";
+import PageTitle from "../components/ui/PageTitle";
+import { ProductService } from "../services/product.service";
+import Input from "../components/forms/Input";
+import type {
+  PaintItemOption,
+  PaintUnitOption,
+  Product,
+  StoredImageData,
+} from "../types/product";
 
-interface Product {
-  id: number;
-  item: string;
-  unit: string;
-  category: string;
-  quantity: number | string;
-  buyPrice: number | string;
-  salePrice: number | string;
-  description: string;
-  createdDate: string;
-  imagePath?: string;
-}
-
-interface PaintItemOption {
-  id: number;
-  item: string;
-}
-
-interface PaintUnitOption {
-  id: number;
-  unit: string;
-}
-
-interface StoredImageData {
-  name: string;
-  dataUrl: string;
-}
-
-const STORAGE_KEYS = {
-  PRODUCTS: "products",
-  PAINT_ITEMS: "paint_items",
-  PAINT_UNITS: "paint_units",
-  USER_IMAGE: "user_image",
-} as const;
+const INITIAL_FORM_STATE: Product = {
+  id: 0,
+  item: "",
+  unit: "",
+  category: "",
+  quantity: "",
+  buyPrice: "",
+  salePrice: "",
+  description: "",
+  createdDate: "",
+  imagePath: "",
+};
 
 const ProductComponent: React.FC = () => {
-  // 1. Dropdown options safely loaded from localStorage
-  const [paintOptions] = useState<PaintItemOption[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.PAINT_ITEMS);
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  // 1. Dropdown & Items State
+  const [paintOptions, setPaintOptions] = useState<PaintItemOption[]>([]);
+  const [unitOptions, setUnitOptions] = useState<PaintUnitOption[]>([]);
+  const [items, setItems] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const [unitOptions] = useState<PaintUnitOption[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.PAINT_UNITS);
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-
-  // 2. Product Table State
-  const [items, setItems] = useState<Product[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
-      return saved
-        ? JSON.parse(saved)
-        : [
-            {
-              id: 1,
-              item: "Premium Wall Paint",
-              unit: "Gallon",
-              category: "Interior",
-              quantity: 100,
-              buyPrice: 4500,
-              salePrice: 5500,
-              description: "Smooth finish interior wall paint",
-              createdDate: "2026-03-05",
-            },
-          ];
-    } catch {
-      return [];
-    }
-  });
-
-  // Form State
-  const [form, setForm] = useState<Product>({
-    id: 0,
-    item: "",
-    unit: "",
-    category: "",
-    quantity: "",
-    buyPrice: "",
-    salePrice: "",
-    description: "",
-    createdDate: "",
-    imagePath: "",
-  });
+  // 2. Form State
+  const [form, setForm] = useState<Product>(INITIAL_FORM_STATE);
   const [isEditing, setIsEditing] = useState(false);
 
   // 3. Image & Popup Modal State
@@ -102,26 +40,28 @@ const ProductComponent: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Load saved image on mount
+  // Fetch initial data via ProductService
   useEffect(() => {
-    try {
-      const savedData = localStorage.getItem(STORAGE_KEYS.USER_IMAGE);
-      if (savedData) {
-        const parsed: StoredImageData = JSON.parse(savedData);
-        if (parsed?.dataUrl) {
-          setImage(parsed);
-          setForm((prev) => ({ ...prev, imagePath: parsed.name }));
-        }
+    const fetchInitialData = async () => {
+      try {
+        setIsLoading(true);
+        const [paintRes, unitRes, productRes] = await Promise.all([
+          ProductService.getPaintOptions(),
+          ProductService.getUnitOptions(),
+          ProductService.getAll(),
+        ]);
+        setPaintOptions(paintRes);
+        setUnitOptions(unitRes);
+        setItems(productRes);
+      } catch (error) {
+        console.error("Failed to fetch initial data:", error);
+      } finally {
+        setIsLoading(false);
       }
-    } catch {
-      localStorage.removeItem(STORAGE_KEYS.USER_IMAGE);
-    }
-  }, []);
+    };
 
-  // Save products when table updates
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(items));
-  }, [items]);
+    fetchInitialData();
+  }, []);
 
   // Form Field Handling
   const handleChange = (
@@ -135,57 +75,61 @@ const ProductComponent: React.FC = () => {
       }));
       return;
     }
-
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleNew = () => {
-    setForm({
-      id: 0,
-      item: "",
-      unit: "",
-      category: "",
-      quantity: "",
-      buyPrice: "",
-      salePrice: "",
-      description: "",
-      createdDate: "",
-      imagePath: "",
-    });
-    handleClearImage();
+    setForm(INITIAL_FORM_STATE);
+    setImage(null);
     setIsEditing(false);
   };
 
-  const handleSave = () => {
-    if (!form.item || !form.unit) return;
-
-    const safeProduct: Product = {
-      ...form,
-      quantity: Number(form.quantity) || 0,
-      buyPrice: Number(form.buyPrice) || 0,
-      salePrice: Number(form.salePrice) || 0,
-      id: isEditing ? form.id : Math.floor(new Date().getTime()),
-      createdDate: isEditing
-        ? form.createdDate || new Date().toISOString().split("T")[0]
-        : new Date().toISOString().split("T")[0],
-    };
-
-    if (isEditing) {
-      setItems((prev) => prev.map((item) => (item.id === form.id ? safeProduct : item)));
-    } else {
-      setItems((prev) => [...prev, safeProduct]);
+  const handleSave = async () => {
+    if (!form.item || !form.unit) {
+      alert("Please select item and unit");
+      return;
     }
 
-    handleNew();
+    try {
+      if (isEditing) {
+        // UPDATE via API
+        const updatedProduct = await ProductService.update(form.id, form);
+        setItems((prev) =>
+          prev.map((item) => (item.id === form.id ? updatedProduct : item))
+        );
+      } else {
+        // CREATE via API
+        const { id, ...createPayload } = form;
+        const createdProduct = await ProductService.create(createPayload);
+        setItems((prev) => [...prev, createdProduct]);
+      }
+      handleNew();
+    } catch (error) {
+      console.error("Error saving product:", error);
+      alert("Failed to save product. Please try again.");
+    }
   };
 
   const handleEdit = (item: Product) => {
     setForm(item);
     setIsEditing(true);
+    if (item.imagePath) {
+      setImage({ name: item.imagePath, dataUrl: "" });
+    } else {
+      setImage(null);
+    }
   };
 
-  const handleDelete = (id: number) => {
-    setItems((prev) => prev.filter((item) => item.id !== id));
+  const handleDelete = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this product?")) return;
+
+    try {
+      await ProductService.delete(id);
+      setItems((prev) => prev.filter((item) => item.id !== id));
+    } catch (error) {
+      console.error("Error deleting product:", error);
+      alert("Failed to delete product.");
+    }
   };
 
   // Popup & File Handlers
@@ -228,18 +172,12 @@ const ProductComponent: React.FC = () => {
       dataUrl: tempDataUrl,
     };
 
-    try {
-      localStorage.setItem(STORAGE_KEYS.USER_IMAGE, JSON.stringify(imageData));
-      setImage(imageData);
-      setForm((prev) => ({ ...prev, imagePath: tempFile.name }));
-      setIsModalOpen(false);
-    } catch {
-      setErrorMsg("Image exceeds LocalStorage quota (~5MB). Please use a smaller image.");
-    }
+    setImage(imageData);
+    setForm((prev) => ({ ...prev, imagePath: tempFile.name }));
+    setIsModalOpen(false);
   };
 
   const handleClearImage = () => {
-    localStorage.removeItem(STORAGE_KEYS.USER_IMAGE);
     setImage(null);
     setForm((prev) => ({ ...prev, imagePath: "" }));
     setErrorMsg(null);
@@ -247,7 +185,6 @@ const ProductComponent: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto">
-    
       <PageTitle title="Products" />
 
       {/* Product Form Grid */}
@@ -261,9 +198,11 @@ const ProductComponent: React.FC = () => {
               onChange={handleChange}
               className="h-12 w-full px-3 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
             >
-              <option value="" disabled>Select an item</option>
+              <option value="">Select an item</option>
               {paintOptions.map((option) => (
-                <option key={option.id} value={option.item}>{option.item}</option>
+                <option key={option.id} value={option.item}>
+                  {option.item}
+                </option>
               ))}
             </select>
           </label>
@@ -276,14 +215,16 @@ const ProductComponent: React.FC = () => {
               onChange={handleChange}
               className="h-12 w-full px-3 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
             >
-              <option value="" disabled>Select a unit</option>
+              <option value="">Select a unit</option>
               {unitOptions.map((option) => (
-                <option key={option.id} value={option.unit}>{option.unit}</option>
+                <option key={option.id} value={option.unit}>
+                  {option.unit}
+                </option>
               ))}
             </select>
           </label>
 
-          <label className="space-y-2 text-sm text-slate-700">
+          {/* <label className="space-y-2 text-sm text-slate-700">
             <span className="font-medium">Quantity</span>
             <input
               name="quantity"
@@ -296,7 +237,9 @@ const ProductComponent: React.FC = () => {
               placeholder="Quantity"
               className="h-12 w-full px-3 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
             />
-          </label>
+          </label> */}
+
+          <Input name="quantity" type="number" handleChange={handleChange} label="Quantity" placeholder="Quantity" />
 
           <label className="space-y-2 text-sm text-slate-700">
             <span className="font-medium">Description</span>
@@ -407,40 +350,48 @@ const ProductComponent: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {items.map((item) => (
-              <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50 transition">
-                <td className="p-3 text-slate-500">{item.id}</td>
-                <td className="p-3 font-medium text-slate-800">{item.item}</td>
-                <td className="p-3 text-slate-600">{item.unit}</td>
-                <td className="p-3 font-mono text-xs text-indigo-600">
-                  {item.imagePath || "—"}
-                </td>
-                <td className="p-3 text-slate-600">{item.quantity}</td>
-                <td className="p-3 text-slate-600">{item.buyPrice} K</td>
-                <td className="p-3 text-slate-600">{item.salePrice} K</td>
-                <td className="p-3 text-slate-600">{item.description}</td>
-                <td className="p-3 text-slate-500">{item.createdDate}</td>
-                <td className="p-3 flex gap-2 justify-center">
-                  <button
-                    type="button"
-                    onClick={() => handleEdit(item)}
-                    className="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded text-xs transition-colors cursor-pointer"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(item.id)}
-                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs transition-colors cursor-pointer"
-                  >
-                    Delete
-                  </button>
+            {isLoading ? (
+              <tr>
+                <td colSpan={10} className="p-4 text-center text-slate-400">
+                  Loading products...
                 </td>
               </tr>
-            ))}
-            {items.length === 0 && (
+            ) : (
+              items.map((item) => (
+                <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50 transition">
+                  <td className="p-3 text-slate-500">{item.id}</td>
+                  <td className="p-3 font-medium text-slate-800">{item.item}</td>
+                  <td className="p-3 text-slate-600">{item.unit}</td>
+                  <td className="p-3 font-mono text-xs text-indigo-600">
+                    {item.imagePath || "—"}
+                  </td>
+                  <td className="p-3 text-slate-600">{item.quantity}</td>
+                  <td className="p-3 text-slate-600">{item.buyPrice} K</td>
+                  <td className="p-3 text-slate-600">{item.salePrice} K</td>
+                  <td className="p-3 text-slate-600">{item.description}</td>
+                  <td className="p-3 text-slate-500">{item.createdDate}</td>
+                  <td className="p-3 flex gap-2 justify-center">
+                    <button
+                      type="button"
+                      onClick={() => handleEdit(item)}
+                      className="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded text-xs transition-colors cursor-pointer"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(item.id)}
+                      className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs transition-colors cursor-pointer"
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+            {!isLoading && items.length === 0 && (
               <tr>
-                <td colSpan={9} className="p-4 text-center text-slate-400">
+                <td colSpan={10} className="p-4 text-center text-slate-400">
                   No products added yet.
                 </td>
               </tr>

@@ -1,44 +1,14 @@
-import React, { useEffect, useState } from "react";
-import PageTitle from "../components/PageTitle";
-import { ItemService, type ItemDTO } from "../api/item";
-
-interface PaintItem {
-  itemID?: number;
-  itemName: string;
-}
-
+import { useState } from "react";
+import PageTitle from "../components/ui/PageTitle";
+import { ItemService } from "../services/item.service";
+import type { Item } from "../types/item";
+import useItem from "../hooks/useItem";
+import Input from "../components/forms/Input";
 const Item: React.FC = () => {
-  const [items, setItems] = useState<ItemDTO[]>([]);
+  const {items, loading, setLoading, error, setError, fetchItems: loaditems} = useItem();
   const [formData, setFormData] = useState({ itemName: "" });
   const [editId, setEditId] = useState<number | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{ itemName?: string }>({});
-
-  useEffect(() => {
-    loaditems();
-  }, []);
-
-  // READ: Fetch all items
- const loaditems = async () => {
-  try {
-    setLoading(true);
-    const data = await ItemService.getAll();
-    // Ensure every item has a valid id value
-    const safeData: PaintItem[] = data.map((item) => ({
-      itemID: item.itemID ?? 0,
-      itemName: item.itemName,
-    }));
-
-    setItems(safeData);
-    setError(null);
-  } catch (err) {
-    setError("Failed to fetch items");
-    console.error(err);
-  } finally {
-    setLoading(false);
-  }
-};
 
   // Input change handler
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,10 +45,10 @@ const Item: React.FC = () => {
       setLoading(true);
       if (editId !== null && editId != undefined) {
         // Update existing record
-        await ItemService.update(editId, formData);
+        await ItemService.updateItem(editId, formData);
       } else {
         // Create new record
-        await ItemService.create(formData);
+        await ItemService.createItem(formData);
       }
       handleNew();
       await loaditems();
@@ -91,8 +61,8 @@ const Item: React.FC = () => {
   };
 
   // EDIT: Populate form for editing
-  const handleEdit = (item: PaintItem) => {
-    setEditId(item.itemID!);
+  const handleEdit = (item: Item) => {
+    setEditId(item.itemId!);
     setFormData({ itemName: item.itemName});
     setFieldErrors({});
   };
@@ -103,7 +73,7 @@ const Item: React.FC = () => {
 
     try {
       setLoading(true);
-      await ItemService.delete(id);
+      await ItemService.deleteItem(id);
       if (editId === id) handleNew();
       await loaditems();
     } catch (err) {
@@ -117,7 +87,7 @@ const Item: React.FC = () => {
   return (
    <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
       {/* Page Header */}
-          <PageTitle title="items Management" />
+          <PageTitle title="Items Management" />
 
       {/* Global Error Banner */}
       {error && (
@@ -147,22 +117,8 @@ const Item: React.FC = () => {
 
         <form onSubmit={handleSave} className="flex flex-col sm:flex-row gap-4 items-start">
           <div className="w-full sm:flex-1">
-            <label htmlFor="itemName" className="block text-xs font-medium text-slate-600 mb-1">
-              item Name <span className="text-red-500">*</span>
-            </label>
-            <input
-              id="itemName"
-              type="text"
-              name="itemName"
-              value={formData.itemName}
-              onChange={handleChange}
-              placeholder="e.g. Gallon, Liter, KG, Box"
-              className={`w-full px-3.5 py-2.5 bg-slate-50 border rounded-lg text-slate-900 text-sm outline-none transition-all placeholder:text-slate-400 focus:bg-white focus:ring-2 ${
-                fieldErrors.itemName
-                  ? "border-red-500 focus:border-red-500 focus:ring-red-100"
-                  : "border-slate-300 focus:border-blue-600 focus:ring-blue-100"
-              }`}
-            />
+            
+            <Input name='itemName' type='text' value={formData.itemName} onChange={handleChange} label="Item Name"  placeholder="e.g. Gallon, Liter, KG, Box" fieldErrors={fieldErrors.itemName}/>
             {fieldErrors.itemName && (
               <p className="mt-1 text-xs text-red-600 font-medium">{fieldErrors.itemName}</p>
             )}
@@ -241,16 +197,16 @@ const Item: React.FC = () => {
                 </tr>
               ) : (
                 items.map((item) => {
-                  const isEditing = editId === item.itemID;
+                  const isEditing = editId === item.itemId;
                   return (
                     <tr
-                      key={item.itemID}
+                      key={item.itemId}
                       className={`transition-colors hover:bg-slate-50/80 ${
                         isEditing ? "bg-blue-50/50" : ""
                       }`}
                     >
                       <td className="py-3.5 px-5 font-mono text-xs font-semibold text-slate-500">
-                        #{item.itemID}
+                        #{item.itemId}
                       </td>
                       <td className="py-3.5 px-5 font-medium text-slate-800">
                         <div className="flex items-center gap-2">
@@ -273,7 +229,7 @@ const Item: React.FC = () => {
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleDelete(item.itemID!)}
+                            onClick={() => handleDelete(item.itemId!)}
                             className="px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors border border-transparent hover:border-red-200"
                           >
                             Delete

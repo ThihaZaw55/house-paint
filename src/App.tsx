@@ -1,4 +1,4 @@
-import Layout from "./components/Layout";
+import Layout from "./components/ui/Layout";
 import Home from "./pages/Home";
 import Unit from "./pages/Unit";
 import Purchase from "./pages/Purchase";
