@@ -1,11 +1,23 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import PageTitle from "../components/ui/PageTitle";
-import { ItemService } from "../services/item.service";
 import type { Item } from "../types/item";
 import useItem from "../hooks/useItem";
 import Input from "../components/forms/Input";
-const Item: React.FC = () => {
-  const {items, loading, setLoading, error, setError, fetchItems: loaditems} = useItem();
+import ErrorPopup from "../components/ui/ErrorPopup"; 
+import SuccessPopup from "../components/ui/SuccessPopup"; 
+
+const ItemPage: React.FC = () => {
+  const {
+    items,
+    loading,
+    error,
+    setError,
+    message,
+    setMessage,
+    saveItem,
+    deleteItem,
+  } = useItem();
+
   const [formData, setFormData] = useState({ itemName: "" });
   const [editId, setEditId] = useState<number | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{ itemName?: string }>({});
@@ -41,29 +53,17 @@ const Item: React.FC = () => {
     if (e) e.preventDefault();
     if (!validateForm()) return;
 
-    try {
-      setLoading(true);
-      if (editId !== null && editId != undefined) {
-        // Update existing record
-        await ItemService.updateItem(editId, formData);
-      } else {
-        // Create new record
-        await ItemService.createItem(formData);
-      }
+    // Hook ထဲမှ saveItem ကို ခေါ်သုံးခြင်း
+    const success = await saveItem(editId, formData);
+    if (success) {
       handleNew();
-      await loaditems();
-    } catch (err) {
-      setError(editId !== null ? "Failed to update item" : "Failed to create item");
-      console.error(err);
-    } finally {
-      setLoading(false);
     }
   };
 
   // EDIT: Populate form for editing
   const handleEdit = (item: Item) => {
     setEditId(item.itemId!);
-    setFormData({ itemName: item.itemName});
+    setFormData({ itemName: item.itemName });
     setFieldErrors({});
   };
 
@@ -71,43 +71,21 @@ const Item: React.FC = () => {
   const handleDelete = async (id: number) => {
     if (!window.confirm("Are you sure you want to delete this item?")) return;
 
-    try {
-      setLoading(true);
-      await ItemService.deleteItem(id);
-      if (editId === id) handleNew();
-      await loaditems();
-    } catch (err) {
-      setError("Failed to delete item");
-      console.error(err);
-    } finally {
-      setLoading(false);
+    // Hook ထဲမှ deleteItem ကို ခေါ်သုံးခြင်း
+    const success = await deleteItem(id);
+    if (success && editId === id) {
+      handleNew();
     }
   };
 
   return (
-   <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
+    <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
       {/* Page Header */}
-          <PageTitle title="Items Management" />
+      <PageTitle title="Items Management" />
 
-      {/* Global Error Banner */}
-      {error && (
-        <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-center justify-between shadow-sm animate-in fade-in duration-200">
-          <div className="flex items-center gap-3">
-            <svg className="w-5 h-5 text-red-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span className="text-sm font-medium">{error}</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setError(null)}
-            className="p-1 text-red-400 hover:text-red-700 hover:bg-red-100 rounded-lg transition-colors"
-            aria-label="Close error"
-          >
-            ✕
-          </button>
-        </div>
-      )}
+      {/* Popups */}
+      <ErrorPopup error={error} setError={setError} />
+      <SuccessPopup message={message} setMessage={setMessage} />
 
       {/* Form Input Card */}
       <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
@@ -117,8 +95,15 @@ const Item: React.FC = () => {
 
         <form onSubmit={handleSave} className="flex flex-col sm:flex-row gap-4 items-start">
           <div className="w-full sm:flex-1">
-            
-            <Input name='itemName' type='text' value={formData.itemName} onChange={handleChange} label="Item Name"  placeholder="e.g. Gallon, Liter, KG, Box" fieldErrors={fieldErrors.itemName}/>
+            <Input
+              name="itemName"
+              type="text"
+              value={formData.itemName}
+              onChange={handleChange}
+              label="Item Name"
+              placeholder="e.g. Gallon, Liter, KG, Box"
+              fieldErrors={fieldErrors.itemName}
+            />
             {fieldErrors.itemName && (
               <p className="mt-1 text-xs text-red-600 font-medium">{fieldErrors.itemName}</p>
             )}
@@ -155,7 +140,7 @@ const Item: React.FC = () => {
       {/* Table Section */}
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-200 bg-slate-50/50 flex justify-between items-center">
-          <h3 className="text-sm font-semibold text-slate-800">item List</h3>
+          <h3 className="text-sm font-semibold text-slate-800">Item List</h3>
           <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200">
             Total: {items.length}
           </span>
@@ -166,7 +151,7 @@ const Item: React.FC = () => {
             <thead>
               <tr className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 uppercase text-[11px] tracking-wider">
                 <th className="py-3 px-5 w-24">ID</th>
-                <th className="py-3 px-5">item Name</th>
+                <th className="py-3 px-5">Item Name</th>
                 <th className="py-3 px-5 text-right w-40">Actions</th>
               </tr>
             </thead>
@@ -248,4 +233,4 @@ const Item: React.FC = () => {
   );
 };
 
-export default Item;
+export default ItemPage;

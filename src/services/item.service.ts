@@ -4,29 +4,26 @@ import type {
   CreateItemRequest,
   UpdateItemRequest,
 } from "../types/item";
+import type { ApiResponse } from "./apiResponse";
 
 export const ItemService = {
 
-  getAll: async (): Promise<Item[]> => {
-    const response = await api.get<Item[]>("/item");
+  // Axios response wrapper ပါဝင်အောင် AxiosResponse<ApiResponse<Item[]>> သို့မဟုတ် ApiResponse<Item[]> ပေးပါ
+getItems: async  (): Promise<ApiResponse<Item[]>> => {
+  const response = await api.get<ApiResponse<Item[]>>('/items');
+  return response.data; // ဒါဆိုရင် { message, data: Item[], success } ကို return ပြန်ပါလိမ့်မည်
+},
 
+  getById: async (id: number): Promise<ApiResponse<Item>> => {
+    const response = await api.get<ApiResponse<Item>>(`/items/${id}`);
+    
     return response.data;
   },
 
-  getById: async (id: number): Promise<Item> => {
-    const response = await api.get<Item>(
-      `/item/${id}`
-    );
+  createItem: async (data: CreateItemRequest): Promise<ApiResponse<Item>> => {
 
-    return response.data;
-  },
-
-  createItem: async (
-    data: CreateItemRequest
-  ): Promise<Item> => {
-
-    const response = await api.post<Item>(
-      "/item",
+    const response = await api.post<ApiResponse<Item>>(
+      "/items",
       data
     );
 
@@ -36,20 +33,18 @@ export const ItemService = {
   updateItem: async (
     id: number,
     data: UpdateItemRequest
-  ): Promise<Item> => {
+  ): Promise<ApiResponse<Item>> => {
 
-    const response = await api.put<Item>(
-      `/item/${id}`,
+    const response = await api.put<ApiResponse<Item>>(
+      `/items/${id}`,
       data
     );
 
     return response.data;
   },
 
-  deleteItem: async (
-    id: number
-  ): Promise<void> => {
-
-    await api.delete(`/item/${id}`);
-  },
+  deleteItem: async (id: number): Promise<ApiResponse<null>> => {
+  const response = await api.delete<ApiResponse<null>>(`/items/${id}`);
+  return response.data;
+  }
 };

@@ -5,6 +5,7 @@ import type { AxiosError } from "axios";
 
 export function useUnits() {
   const [units, setUnits] = useState<Unit[]>([]);
+  const [message, setMessage] = useState<string | null>(null); // Success Message အတွက်
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -13,8 +14,8 @@ export function useUnits() {
     try {
       setLoading(true);
       setError(null);
-      const data = await UnitService.getAll();
-      setUnits(data);
+      const response = await UnitService.getUnits();
+      setUnits(response.data || []);
     } catch (err) {
       const axiosError = err as AxiosError<{ message?: string }>;
       setError(axiosError.response?.data?.message || "Failed to fetch units");
@@ -31,11 +32,14 @@ export function useUnits() {
   const saveUnit = async (id: number | null, data: { unitName: string }) => {
     try {
       setError(null);
+      setMessage(null);
+      let response;
       if (id !== null) {
-        await UnitService.updateUnit(id, data);
+        response = await UnitService.updateUnit(id, data);
       } else {
-        await UnitService.createUnit(data);
+        response = await UnitService.createUnit(data);
       }
+      setMessage(response.message); // Success message ထည့်ခြင်း
       await fetchUnits(); // Auto Refresh
       return true; // Success status ပြန်ပေးရန်
     } catch (err) {
