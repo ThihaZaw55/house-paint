@@ -1,5 +1,30 @@
 export interface Product {
-  Proid: number;
+  productId: number;
+  itemId: string;
+  unitId: string;
+  category: string;
+  quantity: number | string;
+  buyPrice: number | string;
+  salePrice: number | string;
+  description: string;
+  createdDate: string;
+  imagePath?: string;
+}
+
+export interface CreateProduct {
+  itemId: string;
+  unitId: string;
+  category: string;
+  quantity: number | string;
+  buyPrice: number | string;
+  salePrice: number | string;
+  description: string;
+  createdDate: string;
+  imagePath?: string;
+}
+
+export interface UpdateProduct {
+  productId: number;
   item: string;
   unit: string;
   category: string;

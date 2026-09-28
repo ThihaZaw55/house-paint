@@ -3,6 +3,7 @@ import PageTitle from "../components/ui/PageTitle";
 import { useUnits } from "../hooks/useUnit";
 import type { Unit } from "../types/unit";
 import Input from "../components/forms/Input";
+import Table, { type TableColumn } from "../components/ui/Table";
 
 const Unit: React.FC = () => {
   const [formData, setFormData] = useState({ unitName: "" });
@@ -71,6 +72,43 @@ const Unit: React.FC = () => {
     }
   };
 
+  const unitColumns: TableColumn<Unit>[] = [
+    {
+      key: "unitId",
+      title: "ID",
+      className: "py-3.5 px-5 font-mono text-xs font-semibold w-24",
+      render: (item) => `#${item.unitId}`,
+    },
+    {
+      key: "unitName",
+      title: "Unit Name",
+      className: "py-3.5 px-5 font-medium",
+    },
+    {
+      key: "actions",
+      title: "Actions",
+      className: "py-3.5 px-5 text-right w-40",
+      render: (item) => (
+        <div className="flex items-center justify-end gap-1.5">
+          <button
+            type="button"
+            onClick={() => handleEdit(item)}
+            className="px-2.5 py-1.5 text-xs text-slate-600 hover:text-blue-600"
+          >
+            Edit
+          </button>
+          <button
+            type="button"
+            onClick={() => handleDelete(item.unitId!)}
+            className="px-2.5 py-1.5 text-xs text-slate-600 hover:text-red-600"
+          >
+            Delete
+          </button>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
       <PageTitle title="Units Management" />
@@ -125,7 +163,6 @@ const Unit: React.FC = () => {
         </form>
       </div>
 
-      {/* Table Section */}
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-200 flex justify-between items-center">
           <h3 className="text-sm font-semibold text-slate-800">Unit List</h3>
@@ -134,56 +171,15 @@ const Unit: React.FC = () => {
           </span>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-sm">
-            <thead>
-              <tr className="bg-slate-50 text-slate-600 font-semibold border-b text-[11px] uppercase">
-                <th className="py-3 px-5 w-24">ID</th>
-                <th className="py-3 px-5">Unit Name</th>
-                <th className="py-3 px-5 text-right w-40">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200 text-slate-700">
-              {fetchLoading && units.length === 0 ? (
-                <tr>
-                  <td colSpan={3} className="py-8 text-center text-slate-400">Loading units...</td>
-                </tr>
-              ) : units.length === 0 ? (
-                <tr>
-                  <td colSpan={3} className="py-12 text-center text-slate-400">No units found</td>
-                </tr>
-              ) : (
-                units.map((item) => {
-                  const isEditing = editId === item.unitId;
-                  return (
-                    <tr key={item.unitId} className={isEditing ? "bg-blue-50/50" : ""}>
-                      <td className="py-3.5 px-5 font-mono text-xs font-semibold">#{item.unitId}</td>
-                      <td className="py-3.5 px-5 font-medium">{item.unitName}</td>
-                      <td className="py-3.5 px-5 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => handleEdit(item)}
-                            className="px-2.5 py-1.5 text-xs text-slate-600 hover:text-blue-600"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(item.unitId!)}
-                            className="px-2.5 py-1.5 text-xs text-slate-600 hover:text-red-600"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+        <Table
+          columns={unitColumns}
+          data={units}
+          rowKey={(item) => item.unitId}
+          loading={fetchLoading && units.length === 0}
+          loadingText="Loading units..."
+          rowClassName={(item) => (editId === item.unitId ? "bg-blue-50/50" : "")}
+          emptyState={<span>No units found</span>}
+        />
       </div>
     </div>
   );

@@ -8,10 +8,9 @@ import type { ApiResponse } from "./apiResponse";
 
 export const ItemService = {
 
-  // Axios response wrapper ပါဝင်အောင် AxiosResponse<ApiResponse<Item[]>> သို့မဟုတ် ApiResponse<Item[]> ပေးပါ
 getItems: async  (): Promise<ApiResponse<Item[]>> => {
   const response = await api.get<ApiResponse<Item[]>>('/items');
-  return response.data; // ဒါဆိုရင် { message, data: Item[], success } ကို return ပြန်ပါလိမ့်မည်
+  return response.data; 
 },
 
   getById: async (id: number): Promise<ApiResponse<Item>> => {
@@ -21,7 +20,6 @@ getItems: async  (): Promise<ApiResponse<Item[]>> => {
   },
 
   createItem: async (data: CreateItemRequest): Promise<ApiResponse<Item>> => {
-
     const response = await api.post<ApiResponse<Item>>(
       "/items",
       data

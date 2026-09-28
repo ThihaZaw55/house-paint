@@ -5,21 +5,19 @@ import { useEffect, useState } from "react";
 
 export default function useItem() {
   const [items, setItems] = useState<Item[]>([]);
-  const [message, setMessage] = useState<string | null>(null); // Success Message အတွက်
+  const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchItems = async () => {
     try {
       setLoading(true);
-      setError(null); // Clear previous errors
+      setError(null);
       const response = await ItemService.getItems();
       setItems(response.data || []);
-      // success ဖြစ်စဉ် error state ထဲ မထည့်ဘဲ error ကို clear လုပ်ရပါမည်
     } catch (error) {
       const axiosError = error as AxiosError<{ message?: string }>;
-      const errorMessage =
-        axiosError.response?.data?.message || "Failed to fetch items";
+      const errorMessage = axiosError.response?.data?.message || "Failed to fetch items";
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -43,8 +41,8 @@ export default function useItem() {
         res = await ItemService.createItem(data);
       }
 
-      setMessage(res.message); // Success message ထည့်ခြင်း
-      await fetchItems(); // Auto Refresh
+      setMessage(res.message);
+      await fetchItems();
       return true;
     } catch (err) {
       const axiosError = err as AxiosError<{ message?: string }>;
@@ -60,15 +58,11 @@ export default function useItem() {
     try {
       setError(null);
       setMessage(null);
-      
       const res = await ItemService.deleteItem(id);
-      
-      // deleteItem က response ပြန်ပေးပါက message ထည့်ပါ
       if (res && res.message) {
         setMessage(res.message);
       }
-
-      await fetchItems(); // Auto Refresh
+      await fetchItems();
       return true;
     } catch (err) {
       const axiosError = err as AxiosError<{ message?: string }>;

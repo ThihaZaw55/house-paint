@@ -1,43 +1,49 @@
 import React, { type ChangeEvent } from "react";
 
-interface InputProps {
+interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   name: string;
-  type?: string;
-  value?: string;
-  form?: any; // or specify your Product type
-  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
-  label: string;
-  placeholder?: string;
-  fieldErrors?: string ; // or specify your Product type
+  label?: string;
+  error?: string | null;
+  /** callback that returns the raw value when it changes */
+  onValueChange?: (value: string) => void;
 }
 
-export default function Inupt({
+export default function Input({
   name,
-  type = "text",
-  value,
-  onChange,
   label,
-  placeholder,
-  fieldErrors,
+  error,
+  onChange,
+  onValueChange,
+  className = "",
+  id,
+  ...rest
 }: InputProps) {
+  const inputId = id ?? name;
+
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (onChange) onChange(e as unknown as React.ChangeEvent<HTMLInputElement>);
+    if (onValueChange) onValueChange(e.target.value ?? "");
+  };
+
   return (
-    <>
-        <label htmlFor="itemName" className="block text-xs font-medium text-slate-600 mb-1">
-              {label} <span className="text-red-500">*</span>
-            </label>
-            <input
-              id="itemName"
-              type={type}
-              name={name}
-              value={value ?? ""}
-              onChange={onChange}
-              placeholder={placeholder}
-              className={`w-full px-3.5 py-2.5 bg-slate-50 border rounded-lg text-slate-900 text-sm outline-none transition-all placeholder:text-slate-400 focus:border-indigo-100 focus:bg-white focus:ring-2 ${
-               fieldErrors
-                  ? "border-red-500 focus:border-red-500 focus:ring-red-100"
-                  : "border-slate-300 focus:border-blue-600 focus:ring-blue-100"
-              }`}
-            /> 
-    </>
+    <div>
+      {label && (
+        <label htmlFor={inputId} className="block text-xs font-medium text-slate-600 mb-1">
+          {label} {rest.required ? <span className="text-red-500">*</span> : null}
+        </label>
+      )}
+
+      <input
+        id={inputId}
+        name={name}
+        onChange={handleChange}
+        className={`w-full px-3.5 py-2.5 bg-slate-50 border rounded-lg text-slate-900 text-sm outline-none transition-all placeholder:text-slate-400 focus:border-indigo-100 focus:bg-white focus:ring-2 ${
+          error ? "border-red-500 focus:border-red-500 focus:ring-red-100" : "border-slate-300 focus:border-blue-600 focus:ring-blue-100"
+        } ${className}`}
+        {...rest}
+      />
+
+      {error ? <p className="text-xs text-red-500 mt-1">{error}</p> : null}
+    </div>
   );
 }

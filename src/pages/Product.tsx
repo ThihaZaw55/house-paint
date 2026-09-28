@@ -1,18 +1,20 @@
-import React, { useState, useEffect, type ChangeEvent } from "react";
+import React, { useState, useEffect, useRef, type ChangeEvent } from "react";
 import PageTitle from "../components/ui/PageTitle";
 import { ProductService } from "../services/product.service";
 import Input from "../components/forms/Input";
+import useItem from "../hooks/useItem";
+import { useUnits } from "../hooks/useUnit";
 import type {
-  PaintItemOption,
-  PaintUnitOption,
   Product,
   StoredImageData,
 } from "../types/product";
+import InputPrice from "../components/ui/InputPrice";
+import Table, { type TableColumn } from "../components/ui/Table";
 
 const INITIAL_FORM_STATE: Product = {
-  id: 0,
-  item: "",
-  unit: "",
+  productId: 0,
+  itemId: "",
+  unitId: "",
   category: "",
   quantity: "",
   buyPrice: "",
@@ -23,38 +25,36 @@ const INITIAL_FORM_STATE: Product = {
 };
 
 const ProductComponent: React.FC = () => {
-  // 1. Dropdown & Items State
-  const [paintOptions, setPaintOptions] = useState<PaintItemOption[]>([]);
-  const [unitOptions, setUnitOptions] = useState<PaintUnitOption[]>([]);
-  const [items, setItems] = useState<Product[]>([]);
+  // Hidden File Input ကို တိုက်ရိုက် လှမ်းခေါ်ရန် useRef သုံးထားပါသည်
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // 1. Dropdown & products State
+  const { items, loading: itemLoading } = useItem();
+  const { units, loading: unitLoading } = useUnits();
+  
+  const paintOptions = items.map((item) => ({ id: item.itemId, item: item.itemName }));
+  const unitOptions = units.map((unit) => ({ id: unit.unitId, unit: unit.unitName }));
+  
+  const [products, setproducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // 2. Form State
   const [form, setForm] = useState<Product>(INITIAL_FORM_STATE);
   const [isEditing, setIsEditing] = useState(false);
 
-  // 3. Image & Popup Modal State
+  // 3. Image State (Modal သုံးစရာ မလိုတော့ပါ)
   const [image, setImage] = useState<StoredImageData | null>(null);
   const [tempFile, setTempFile] = useState<File | null>(null);
-  const [tempDataUrl, setTempDataUrl] = useState<string | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Fetch initial data via ProductService
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
         setIsLoading(true);
-        const [paintRes, unitRes, productRes] = await Promise.all([
-          ProductService.getPaintOptions(),
-          ProductService.getUnitOptions(),
-          ProductService.getAll(),
-        ]);
-        setPaintOptions(paintRes);
-        setUnitOptions(unitRes);
-        setItems(productRes);
+        const productRes = await ProductService.getAll();
+        console.log("Fetched products:", productRes.data);
+        setproducts(productRes.data || []);
       } catch (error) {
-        console.error("Failed to fetch initial data:", error);
+        console.error("Failed to fetch product data:", error);
       } finally {
         setIsLoading(false);
       }
@@ -63,7 +63,6 @@ const ProductComponent: React.FC = () => {
     fetchInitialData();
   }, []);
 
-  // Form Field Handling
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
@@ -81,32 +80,35 @@ const ProductComponent: React.FC = () => {
   const handleNew = () => {
     setForm(INITIAL_FORM_STATE);
     setImage(null);
+    setTempFile(null);
     setIsEditing(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const handleSave = async () => {
-    if (!form.item || !form.unit) {
-      alert("Please select item and unit");
-      return;
-    }
+    const payload = {
+      itemId: Number(form.itemId),
+      unitId: Number(form.unitId),      
+      colourId: form.category ? Number(form.category) : null,
+      costPrice: Number(form.buyPrice),
+      salesPrice: Number(form.salePrice),
+      stockQuantity: Number(form.quantity),
+      description: form.description || "",
+    };
 
     try {
       if (isEditing) {
-        // UPDATE via API
-        const updatedProduct = await ProductService.update(form.id, form);
-        setItems((prev) =>
-          prev.map((item) => (item.id === form.id ? updatedProduct : item))
-        );
+        await ProductService.update(form.productId, payload, tempFile);
       } else {
-        // CREATE via API
-        const { id, ...createPayload } = form;
-        const createdProduct = await ProductService.create(createPayload);
-        setItems((prev) => [...prev, createdProduct]);
+        await ProductService.create(payload, tempFile);
       }
+      const productRes = await ProductService.getAll();
+      setproducts(productRes.data || []);
       handleNew();
     } catch (error) {
       console.error("Error saving product:", error);
-      alert("Failed to save product. Please try again.");
     }
   };
 
@@ -125,28 +127,25 @@ const ProductComponent: React.FC = () => {
 
     try {
       await ProductService.delete(id);
-      setItems((prev) => prev.filter((item) => item.id !== id));
+      setproducts((prev) => prev.filter((item) => item.productId !== id));
     } catch (error) {
       console.error("Error deleting product:", error);
       alert("Failed to delete product.");
     }
   };
 
-  // Popup & File Handlers
-  const handleOpenModal = () => {
-    setErrorMsg(null);
-    setTempFile(null);
-    setTempDataUrl(null);
-    setIsModalOpen(true);
+  // Choose Image Button ကို နှိပ်ပါက hidden file input ၏ click event ကို ခေါ်ပေးမည်
+  const handleChooseImageClick = () => {
+    fileInputRef.current?.click();
   };
 
-  const handleFileSelection = (e: ChangeEvent<HTMLInputElement>) => {
-    setErrorMsg(null);
+  // File ရွေးလိုက်သည်နှင့် Direct အလုပ်လုပ်မည့် Handler
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      setErrorMsg("Please select a valid image file.");
+      alert("Please select a valid image file.");
       return;
     }
 
@@ -154,34 +153,102 @@ const ProductComponent: React.FC = () => {
     reader.onload = (event) => {
       const dataUrl = event.target?.result as string;
       if (!dataUrl) return;
+
       setTempFile(file);
-      setTempDataUrl(dataUrl);
+      setImage({
+        name: file.name,
+        dataUrl: dataUrl,
+      });
+      setForm((prev) => ({ ...prev, imagePath: file.name }));
     };
-    reader.onerror = () => setErrorMsg("Failed to read image file.");
     reader.readAsDataURL(file);
-  };
-
-  const handleSaveImageFromModal = () => {
-    if (!tempFile || !tempDataUrl) {
-      setErrorMsg("Please select an image first.");
-      return;
-    }
-
-    const imageData: StoredImageData = {
-      name: tempFile.name,
-      dataUrl: tempDataUrl,
-    };
-
-    setImage(imageData);
-    setForm((prev) => ({ ...prev, imagePath: tempFile.name }));
-    setIsModalOpen(false);
   };
 
   const handleClearImage = () => {
     setImage(null);
+    setTempFile(null);
     setForm((prev) => ({ ...prev, imagePath: "" }));
-    setErrorMsg(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
+
+  const isTableLoading = isLoading || itemLoading || unitLoading;
+
+  const productColumns: TableColumn<Product>[] = [
+    {
+      key: "ProductId",
+      title: "ID",
+      className: "p-3 text-slate-500 w-20",
+      render: (item) => item.productId,
+    },
+    {
+      key: "itemName",
+      title: "Item Name",
+      className: "p-3 font-medium text-slate-800",
+    },
+    {
+      key: "unitName",
+      title: "Unit",
+      className: "p-3 text-slate-600",
+    },
+    {
+      key: "imageUrl",
+      title: "Image Path",
+      className: "p-3 font-mono text-xs text-indigo-600",
+      render: (item) => item.imagePath || "—",
+    },
+    {
+      key: "stockQuantity",
+      title: "Quantity",
+      className: "p-3 text-slate-600",
+    },
+    {
+      key: "costPrice",
+      title: "Buy Price",
+      className: "p-3 text-slate-600",
+      render: (item) => `${item.buyPrice} K`,
+    },
+    {
+      key: "salesPrice",
+      title: "Sale Price",
+      className: "p-3 text-slate-600",
+      render: (item) => `${item.salePrice} K`,
+    },
+    {
+      key: "description",
+      title: "Description",
+      className: "p-3 text-slate-600",
+    },
+    // {
+    //   key: "createdDate",
+    //   title: "Created Date",
+    //   className: "p-3 text-slate-500",
+    // },
+    {
+      key: "actions",
+      title: "Actions",
+      className: "p-3 text-center w-36",
+      render: (item) => (
+        <div className="flex gap-2 justify-center">
+          <button
+            type="button"
+            onClick={() => handleEdit(item)}
+            className="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded text-xs transition-colors cursor-pointer"
+          >
+            Edit
+          </button>
+          <button
+            type="button"
+            onClick={() => handleDelete(item.productId)}
+            className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs transition-colors cursor-pointer"
+          >
+            Delete
+          </button>
+        </div>
+      ),
+    },
+  ];
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -193,14 +260,14 @@ const ProductComponent: React.FC = () => {
           <label className="space-y-2 text-sm text-slate-700">
             <span className="font-medium">Paint Item</span>
             <select
-              name="item"
-              value={form.item}
+              name="itemId"
+              value={form.itemId}
               onChange={handleChange}
               className="h-12 w-full px-3 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
             >
               <option value="">Select an item</option>
               {paintOptions.map((option) => (
-                <option key={option.id} value={option.item}>
+                <option key={option.id} value={option.id}>
                   {option.item}
                 </option>
               ))}
@@ -210,83 +277,70 @@ const ProductComponent: React.FC = () => {
           <label className="space-y-2 text-sm text-slate-700">
             <span className="font-medium">Unit</span>
             <select
-              name="unit"
-              value={form.unit}
+              name="unitId"
+              value={form.unitId}
               onChange={handleChange}
               className="h-12 w-full px-3 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
             >
               <option value="">Select a unit</option>
               {unitOptions.map((option) => (
-                <option key={option.id} value={option.unit}>
+                <option key={option.id} value={option.id}>
                   {option.unit}
                 </option>
               ))}
             </select>
           </label>
 
-          {/* <label className="space-y-2 text-sm text-slate-700">
-            <span className="font-medium">Quantity</span>
-            <input
-              name="quantity"
-              type="number"
-              min={0}
-              step={1}
-              inputMode="numeric"
-              value={form.quantity}
-              onChange={handleChange}
-              placeholder="Quantity"
-              className="h-12 w-full px-3 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-            />
-          </label> */}
+          <Input
+            label="Quantity"
+            name="quantity"
+            type="number"
+            value={form.quantity}
+            onChange={handleChange}
+            placeholder="Quantity"
+          />
 
-          <Input name="quantity" type="number" handleChange={handleChange} label="Quantity" placeholder="Quantity" />
+          <Input
+            label="Description"
+            name="description"
+            type="text"
+            value={form.description}
+            onChange={handleChange}
+            placeholder="Description"
+          />
 
-          <label className="space-y-2 text-sm text-slate-700">
-            <span className="font-medium">Description</span>
-            <input
-              name="description"
-              value={form.description}
-              onChange={handleChange}
-              placeholder="Description"
-              className="h-12 w-full px-3 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-            />
-          </label>
+          <InputPrice
+            label="Buy Price"
+            name="buyPrice"
+            type="number"
+            value={form.buyPrice}
+            onChange={handleChange}
+            placeholder="Buy Price"
+          />
 
-          <label className="space-y-2 text-sm text-slate-700">
-            <span className="font-medium">Buy Price</span>
-            <input
-              name="buyPrice"
-              type="number"
-              min={0}
-              step={100}
-              inputMode="numeric"
-              value={form.buyPrice}
-              onChange={handleChange}
-              placeholder="Buy Price"
-              className="h-12 w-full px-3 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-            />
-          </label>
+          <InputPrice
+            label="Sale Price"
+            name="salePrice"
+            type="number"
+            value={form.salePrice}
+            onChange={handleChange}
+            placeholder="Sale Price"
+          />
 
-          <label className="space-y-2 text-sm text-slate-700">
-            <span className="font-medium">Sale Price</span>
-            <input
-              name="salePrice"
-              type="number"
-              min={0}
-              step={100}
-              inputMode="numeric"
-              value={form.salePrice}
-              onChange={handleChange}
-              placeholder="Sale Price"
-              className="h-12 w-full px-3 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-            />
-          </label>
+          {/* Hidden File Input */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            accept="image/*"
+            className="hidden"
+          />
 
-          {/* Compact Image Trigger Slot */}
+          {/* Direct File Trigger Button */}
           <div className="flex items-center gap-2 h-12 md:col-span-4">
             <button
               type="button"
-              onClick={handleOpenModal}
+              onClick={handleChooseImageClick}
               className="h-12 px-5 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white text-sm font-medium rounded-xl transition-colors whitespace-nowrap cursor-pointer"
             >
               Choose Image
@@ -332,132 +386,16 @@ const ProductComponent: React.FC = () => {
         </button>
       </div>
 
-      {/* Products Table */}
       <div className="overflow-x-auto rounded-lg border border-slate-200">
-        <table className="w-full text-left border-collapse text-sm">
-          <thead>
-            <tr className="bg-slate-100 text-slate-700 border-b border-slate-200 font-semibold">
-              <th className="p-3">ID</th>
-              <th className="p-3">Item Name</th>
-              <th className="p-3">Unit</th>
-              <th className="p-3">Image Path</th>
-              <th className="p-3">Quantity</th>
-              <th className="p-3">Buy Price</th>
-              <th className="p-3">Sale Price</th>
-              <th className="p-3">Description</th>
-              <th className="p-3">Created Date</th>
-              <th className="p-3 text-center">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              <tr>
-                <td colSpan={10} className="p-4 text-center text-slate-400">
-                  Loading products...
-                </td>
-              </tr>
-            ) : (
-              items.map((item) => (
-                <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50 transition">
-                  <td className="p-3 text-slate-500">{item.id}</td>
-                  <td className="p-3 font-medium text-slate-800">{item.item}</td>
-                  <td className="p-3 text-slate-600">{item.unit}</td>
-                  <td className="p-3 font-mono text-xs text-indigo-600">
-                    {item.imagePath || "—"}
-                  </td>
-                  <td className="p-3 text-slate-600">{item.quantity}</td>
-                  <td className="p-3 text-slate-600">{item.buyPrice} K</td>
-                  <td className="p-3 text-slate-600">{item.salePrice} K</td>
-                  <td className="p-3 text-slate-600">{item.description}</td>
-                  <td className="p-3 text-slate-500">{item.createdDate}</td>
-                  <td className="p-3 flex gap-2 justify-center">
-                    <button
-                      type="button"
-                      onClick={() => handleEdit(item)}
-                      className="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded text-xs transition-colors cursor-pointer"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(item.id)}
-                      className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs transition-colors cursor-pointer"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
-            {!isLoading && items.length === 0 && (
-              <tr>
-                <td colSpan={10} className="p-4 text-center text-slate-400">
-                  No products added yet.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+        <Table
+          columns={productColumns}
+          data={products}
+          rowKey={(item) => item.productId}
+          loading={isTableLoading}
+          loadingText="Loading products..."
+          emptyState={<span>No products added yet.</span>}
+        />
       </div>
-
-      {/* POPUP MODAL FOR FILE UPLOAD */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 relative">
-            <h2 className="text-lg font-bold text-slate-800 mb-4">Upload Product Image</h2>
-
-            <div className="mb-4">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleFileSelection}
-                className="block w-full text-xs text-slate-500
-                  file:mr-4 file:py-2 file:px-4
-                  file:rounded-md file:border-0
-                  file:text-xs file:font-semibold
-                  file:bg-indigo-50 file:text-indigo-700
-                  hover:file:bg-indigo-100 cursor-pointer"
-              />
-            </div>
-
-            {errorMsg && (
-              <div className="mb-4 p-3 bg-red-50 border-l-4 border-red-500 text-red-700 text-xs rounded">
-                {errorMsg}
-              </div>
-            )}
-
-            {tempFile && tempDataUrl && (
-              <div className="mb-4 p-3 bg-slate-50 rounded-lg border border-slate-200">
-                <p className="text-xs font-semibold text-slate-600 mb-2 truncate">
-                  Selected File: <span className="text-indigo-600">{tempFile.name}</span>
-                </p>
-                <img
-                  src={tempDataUrl}
-                  alt="Preview"
-                  className="w-full max-h-40 object-contain rounded-md border border-slate-200 bg-white"
-                />
-              </div>
-            )}
-
-            <div className="flex justify-end gap-2.5 mt-6">
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-medium rounded-md transition-colors cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveImageFromModal}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-md transition-colors cursor-pointer"
-              >
-                Save Image
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
