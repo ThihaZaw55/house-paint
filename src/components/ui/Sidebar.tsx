@@ -24,13 +24,11 @@ export default function Sidebar() {
     >
       <div className="flex items-center justify-between p-2 border-b">
         {open && (
-          // <h1 className="text-xl font-bold">
             <img
               src={Logo}
               alt="Logo"
               className="h-10 w-10 rounded-full"
             />
-          // </h1>
         )}
         <Menu className="cursor-pointer" onClick={() => setOpen(!open)} />
       </div>
@@ -59,7 +57,7 @@ export default function Sidebar() {
           />
         </NavLink>
 
-        <NavLink
+        {/* <NavLink
           className={({ isActive }) =>
             `block rounded-lg ${isActive ? "bg-gray-100" : "hover:bg-gray-100"}`
           }
@@ -71,7 +69,7 @@ export default function Sidebar() {
             open={open}
             badgeCount={cartCount}
           />
-        </NavLink>
+        </NavLink> */}
 
         <NavLink
           className={({ isActive }) =>
@@ -106,6 +104,16 @@ export default function Sidebar() {
         >
           <SidebarItem icon={BanknoteArrowUp} label="Income" open={open} />
         </NavLink>
+
+        {/* <NavLink
+          className={({ isActive }) =>
+            `block rounded-lg ${isActive ? "bg-gray-100" : "hover:bg-gray-100"}`
+          }
+          to="/personalInfoPage"
+        >
+          <SidebarItem icon={BanknoteArrowUp} label="personalInfo" open={open} />
+        </NavLink> */}
+        
       </nav>
     </aside>
   );

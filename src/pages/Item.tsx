@@ -5,7 +5,6 @@ import useItem from "../hooks/useItem";
 import Input from "../components/forms/Input";
 import ErrorPopup from "../components/ui/ErrorPopup";
 import SuccessPopup from "../components/ui/SuccessPopup";
-import Table, { type TableColumn } from "../components/ui/Table";
 
 const ItemPage: React.FC = () => {
   const {
@@ -79,53 +78,6 @@ const ItemPage: React.FC = () => {
     }
   };
 
-  const itemColumns: TableColumn<Item>[] = [
-    {
-      key: "itemId",
-      title: "ID",
-      className: "py-3.5 px-5 font-mono text-xs font-semibold text-slate-500 w-24",
-      render: (item) => `#${item.itemId}`,
-    },
-    {
-      key: "itemName",
-      title: "Item Name",
-      className: "py-3.5 px-5 font-medium text-slate-800",
-      render: (item) => (
-        <div className="flex items-center gap-2">
-          <span>{item.itemName}</span>
-          {editId === item.itemId && (
-            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-100 text-blue-800">
-              Editing
-            </span>
-          )}
-        </div>
-      ),
-    },
-    {
-      key: "actions",
-      title: "Actions",
-      className: "py-3.5 px-5 text-right w-40",
-      render: (item) => (
-        <div className="flex items-center justify-end gap-1.5">
-          <button
-            type="button"
-            onClick={() => handleEdit(item)}
-            className="px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors border border-transparent hover:border-blue-200"
-          >
-            Edit
-          </button>
-          <button
-            type="button"
-            onClick={() => handleDelete(item.itemId!)}
-            className="px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors border border-transparent hover:border-red-200"
-          >
-            Delete
-          </button>
-        </div>
-      ),
-    },
-  ];
-
   return (
     <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
       <PageTitle title="Items Management" />
@@ -190,23 +142,75 @@ const ItemPage: React.FC = () => {
           </span>
         </div>
 
-        <Table
-          columns={itemColumns}
-          data={items}
-          rowKey={(item) => item.itemId}
-          loading={loading && items.length === 0}
-          loadingText="Loading items..."
-          rowClassName={(item) => (editId === item.itemId ? "bg-blue-50/50" : "")}
-          emptyState={
-            <div className="flex flex-col items-center gap-2">
-              <svg className="w-8 h-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-              </svg>
-              <p className="font-medium text-slate-500">No items found</p>
-              <p className="text-xs text-slate-400">Create your first measurement item using the form above.</p>
-            </div>
-          }
-        />
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 uppercase text-[11px] tracking-wider">
+                <th className="py-3 px-5 font-mono text-xs font-semibold text-slate-500 w-24">ID</th>
+                <th className="py-3 px-5 font-medium text-slate-800">Item Name</th>
+                <th className="py-3 px-5 text-right w-40">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200 text-slate-700">
+              {loading && items.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="py-8 text-center text-slate-400">
+                    Loading items...
+                  </td>
+                </tr>
+              ) : items.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="py-12 text-center text-slate-400">
+                    <div className="flex flex-col items-center gap-2">
+                      <svg className="w-8 h-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                      </svg>
+                      <p className="font-medium text-slate-500">No items found</p>
+                      <p className="text-xs text-slate-400">Create your first measurement item using the form above.</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                items.map((item) => (
+                  <tr
+                    key={item.itemId}
+                    className={editId === item.itemId ? "bg-blue-50/50 transition-colors" : "transition-colors hover:bg-slate-50"}
+                  >
+                    <td className="py-3.5 px-5 font-mono text-xs font-semibold text-slate-500 w-24">#{item.itemId}</td>
+                    <td className="py-3.5 px-5 font-medium text-slate-800">
+                      <div className="flex items-center gap-2">
+                        <span>{item.itemName}</span>
+                        {editId === item.itemId && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-100 text-blue-800">
+                            Editing
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-5 text-right w-40">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleEdit(item)}
+                          className="px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors border border-transparent hover:border-blue-200"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(item.itemId!)}
+                          className="px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors border border-transparent hover:border-red-200"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

@@ -40,7 +40,13 @@ export const ProductService = {
       formData.append("imageFile", imageFile);
     }
 
-    const response = await api.post<ApiResponse<Product>>("/admin/products", formData);
+    const response = await api.post<ApiResponse<Product>>("/admin/products", formData,
+      {
+        headers: {
+          "Content-Type" : "multipart/form-data",
+        }
+      });
+      
     return response.data;
   },
 
@@ -65,7 +71,12 @@ export const ProductService = {
 
     const response = await api.put<ApiResponse<UpdateProduct>>(
       `/admin/products/${productId}`,
-      formData
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        }
+      }
     );
     return response.data;
   },

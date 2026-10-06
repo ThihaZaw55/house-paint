@@ -1,4 +1,13 @@
-export default function InputPrice({ label, name, type, value, onChange, placeholder }: InputPriceProps) {
+type InputPriceProps = {
+    label: string;
+    name: string;
+    type?: React.HTMLInputTypeAttribute;
+    value: string | number;
+    onChange: React.ChangeEventHandler<HTMLInputElement>;
+    placeholder?: string;
+};
+
+export default function InputPrice({ label, name, type = "text", value, onChange, placeholder }: InputPriceProps) {
     return (
         <label className="space-y-2 text-sm text-slate-700">
             <span className="font-medium">{label}</span>

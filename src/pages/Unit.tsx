@@ -3,9 +3,8 @@ import PageTitle from "../components/ui/PageTitle";
 import { useUnits } from "../hooks/useUnit";
 import type { Unit } from "../types/unit";
 import Input from "../components/forms/Input";
-import Table, { type TableColumn } from "../components/ui/Table";
 
-const Unit: React.FC = () => {
+export const UnitPage: React.FC = () => {
   const [formData, setFormData] = useState({ unitName: "" });
   const [actionLoading, setActionLoading] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
@@ -72,43 +71,6 @@ const Unit: React.FC = () => {
     }
   };
 
-  const unitColumns: TableColumn<Unit>[] = [
-    {
-      key: "unitId",
-      title: "ID",
-      className: "py-3.5 px-5 font-mono text-xs font-semibold w-24",
-      render: (item) => `#${item.unitId}`,
-    },
-    {
-      key: "unitName",
-      title: "Unit Name",
-      className: "py-3.5 px-5 font-medium",
-    },
-    {
-      key: "actions",
-      title: "Actions",
-      className: "py-3.5 px-5 text-right w-40",
-      render: (item) => (
-        <div className="flex items-center justify-end gap-1.5">
-          <button
-            type="button"
-            onClick={() => handleEdit(item)}
-            className="px-2.5 py-1.5 text-xs text-slate-600 hover:text-blue-600"
-          >
-            Edit
-          </button>
-          <button
-            type="button"
-            onClick={() => handleDelete(item.unitId!)}
-            className="px-2.5 py-1.5 text-xs text-slate-600 hover:text-red-600"
-          >
-            Delete
-          </button>
-        </div>
-      ),
-    },
-  ];
-
   return (
     <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
       <PageTitle title="Units Management" />
@@ -136,7 +98,7 @@ const Unit: React.FC = () => {
 
         <form onSubmit={handleSave} className="flex flex-col sm:flex-row gap-4 items-start">
           <div className="w-full sm:flex-1">
-            <Input name="unitName" type='text' value={formData.unitName} onChange={handleChange} label="Unit Name"  placeholder="e.g. Gallon, Liter, KG, Box" fieldErrors={fieldErrors.unitName}/>
+            <Input name="unitName" type='text' value={formData.unitName} onChange={handleChange} label="Unit Name" placeholder="e.g. Gallon, Liter, KG, Box" error={fieldErrors.unitName} />
             {fieldErrors.unitName && (
               <p className="mt-1 text-xs text-red-600 font-medium">{fieldErrors.unitName}</p>
             )}
@@ -171,18 +133,63 @@ const Unit: React.FC = () => {
           </span>
         </div>
 
-        <Table
-          columns={unitColumns}
-          data={units}
-          rowKey={(item) => item.unitId}
-          loading={fetchLoading && units.length === 0}
-          loadingText="Loading units..."
-          rowClassName={(item) => (editId === item.unitId ? "bg-blue-50/50" : "")}
-          emptyState={<span>No units found</span>}
-        />
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 uppercase text-[11px] tracking-wider">
+                <th className="py-3 px-5 font-mono text-xs font-semibold w-24">ID</th>
+                <th className="py-3 px-5">Unit Name</th>
+                <th className="py-3 px-5 text-right w-40">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200 text-slate-700">
+              {fetchLoading && units.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="py-8 text-center text-slate-400">
+                    Loading units...
+                  </td>
+                </tr>
+              ) : units.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="py-8 text-center text-slate-400">
+                    No units found
+                  </td>
+                </tr>
+              ) : (
+                units.map((item) => (
+                  <tr
+                    key={item.unitId}
+                    className={editId === item.unitId ? "bg-blue-50/50 transition-colors" : "transition-colors hover:bg-slate-50"}
+                  >
+                    <td className="py-3.5 px-5 font-mono text-xs font-semibold w-24">#{item.unitId}</td>
+                    <td className="py-3.5 px-5 font-medium">{item.unitName}</td>
+                    <td className="py-3.5 px-5 text-right w-40">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleEdit(item)}
+                          className="px-2.5 py-1.5 text-xs text-slate-600 hover:text-blue-600"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(item.unitId!)}
+                          className="px-2.5 py-1.5 text-xs text-slate-600 hover:text-red-600"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
 };
 
-export default Unit;
+export default UnitPage;

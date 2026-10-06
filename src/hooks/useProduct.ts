@@ -28,15 +28,16 @@ export default function useProduct(){
         fetchProducts();
     }, [])
 
-    const saveProduct = async (productId: number | null, data: CreateProduct) => {
+    const saveProduct = async (productId: number | null, data: CreateProduct, imageFile?: File | null) => {
         try{
             setError(null);
+            setMessage(null);
             setIsLoading(true);
             let response;
             if(productId !== null){
-                response = await ProductService.update(productId, data);
+                response = await ProductService.update(productId, data, imageFile);
             }else {
-                response = await ProductService.create(data);   
+                response = await ProductService.create(data, imageFile);   
             }
             setMessage(response.message);
             await fetchProducts();
@@ -55,17 +56,20 @@ export default function useProduct(){
     const deleteProduct = async (productId: number) => {
         try{
             setError(null);
+            setMessage(null);
             setIsLoading(true);
             const response = await ProductService.delete(productId);
             if(response && response.message){
                 setMessage(response.message);
             }
             await fetchProducts();
+            return true;
         }catch(err){
             const axiosError = err as AxiosError<{ message?: string}>;
             setError(
                 axiosError.response?.data?.message || "Failed to delete product"
             );
+            return false;
         }finally{
             setIsLoading(false);
         }
@@ -73,9 +77,11 @@ export default function useProduct(){
 
     return {
         products,
-        error,
         isLoading,
+        error,
+        setError,
         message,
+        setMessage,
         fetchProducts,
         saveProduct,
         deleteProduct

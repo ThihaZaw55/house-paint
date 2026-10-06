@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, type ChangeEvent } from "react";
 import PageTitle from "../components/ui/PageTitle";
-import { ProductService } from "../services/product.service";
 import Input from "../components/forms/Input";
 import useItem from "../hooks/useItem";
 import { useUnits } from "../hooks/useUnit";
@@ -9,15 +8,18 @@ import type {
   StoredImageData,
 } from "../types/product";
 import InputPrice from "../components/ui/InputPrice";
-import Table, { type TableColumn } from "../components/ui/Table";
+import useProduct from "@/hooks/useProduct";
+import ErrorPopup from "../components/ui/ErrorPopup";
+import SuccessPopup from "../components/ui/SuccessPopup";
 
+// 1. Value များအားလုံးကို null / undefined မဟုတ်ဘဲ Empty String သို့မဟုတ် 0 ဖြင့် စတင်ပေးပါ
 const INITIAL_FORM_STATE: Product = {
   productId: 0,
   itemId: "",
   unitId: "",
   category: "",
-  quantity: "",
-  buyPrice: "",
+  stockQuantity: "",
+  costPrice: "",
   salePrice: "",
   description: "",
   createdDate: "",
@@ -25,42 +27,37 @@ const INITIAL_FORM_STATE: Product = {
 };
 
 const ProductComponent: React.FC = () => {
-  // Hidden File Input ကို တိုက်ရိုက် လှမ်းခေါ်ရန် useRef သုံးထားပါသည်
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // 1. Dropdown & products State
+  const {
+    products,
+    isLoading,
+    error,
+    setError,
+    message,
+    setMessage,
+    fetchProducts,
+    saveProduct,
+    deleteProduct,
+  } = useProduct();
+
   const { items, loading: itemLoading } = useItem();
   const { units, loading: unitLoading } = useUnits();
   
   const paintOptions = items.map((item) => ({ id: item.itemId, item: item.itemName }));
   const unitOptions = units.map((unit) => ({ id: unit.unitId, unit: unit.unitName }));
   
-  const [products, setproducts] = useState<Product[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  //const [products, setproducts] = useState<Product[]>([]);
+  //const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // 2. Form State
   const [form, setForm] = useState<Product>(INITIAL_FORM_STATE);
   const [isEditing, setIsEditing] = useState(false);
 
-  // 3. Image State (Modal သုံးစရာ မလိုတော့ပါ)
   const [image, setImage] = useState<StoredImageData | null>(null);
   const [tempFile, setTempFile] = useState<File | null>(null);
 
   useEffect(() => {
-    const fetchInitialData = async () => {
-      try {
-        setIsLoading(true);
-        const productRes = await ProductService.getAll();
-        console.log("Fetched products:", productRes.data);
-        setproducts(productRes.data || []);
-      } catch (error) {
-        console.error("Failed to fetch product data:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchInitialData();
+    fetchProducts();
   }, []);
 
   const handleChange = (
@@ -89,31 +86,37 @@ const ProductComponent: React.FC = () => {
 
   const handleSave = async () => {
     const payload = {
-      itemId: Number(form.itemId),
-      unitId: Number(form.unitId),      
-      colourId: form.category ? Number(form.category) : null,
-      costPrice: Number(form.buyPrice),
-      salesPrice: Number(form.salePrice),
-      stockQuantity: Number(form.quantity),
+      itemId: String(form.itemId),
+      unitId: String(form.unitId),
+      category: form.category,
+      stockQuantity: Number(form.stockQuantity),
+      buyPrice: Number(form.costPrice),
+      salePrice: Number(form.salePrice),
       description: form.description || "",
+      createdDate: form.createdDate || new Date().toISOString(),
+      imagePath: form.imagePath || "",
     };
 
-    try {
-      if (isEditing) {
-        await ProductService.update(form.productId, payload, tempFile);
-      } else {
-        await ProductService.create(payload, tempFile);
-      }
-      const productRes = await ProductService.getAll();
-      setproducts(productRes.data || []);
+    const success = await saveProduct(isEditing ? form.productId : null, payload, tempFile);
+    if (success) {
       handleNew();
-    } catch (error) {
-      console.error("Error saving product:", error);
     }
   };
 
+  // 2. handleEdit တွင် DB မှ null / undefined ပါလာပါက empty string ("") သို့ မဖြစ်မနေ ပြောင်းပေးပါ
   const handleEdit = (item: Product) => {
-    setForm(item);
+    setForm({
+      productId: item.productId ?? 0,
+      itemId: item.itemId ?? "",
+      unitId: item.unitId ?? "",
+      category: item.category ?? "",
+      stockQuantity: item.stockQuantity ?? "",
+      costPrice: item.costPrice ?? "",
+      salePrice: item.salePrice ?? "",
+      description: item.description ?? "",
+      createdDate: item.createdDate ?? "",
+      imagePath: item.imagePath ?? "",
+    });
     setIsEditing(true);
     if (item.imagePath) {
       setImage({ name: item.imagePath, dataUrl: "" });
@@ -125,21 +128,16 @@ const ProductComponent: React.FC = () => {
   const handleDelete = async (id: number) => {
     if (!confirm("Are you sure you want to delete this product?")) return;
 
-    try {
-      await ProductService.delete(id);
-      setproducts((prev) => prev.filter((item) => item.productId !== id));
-    } catch (error) {
-      console.error("Error deleting product:", error);
-      alert("Failed to delete product.");
+    const success = await deleteProduct(id);
+    if (success && isEditing) {
+      handleNew();
     }
   };
 
-  // Choose Image Button ကို နှိပ်ပါက hidden file input ၏ click event ကို ခေါ်ပေးမည်
   const handleChooseImageClick = () => {
     fileInputRef.current?.click();
   };
 
-  // File ရွေးလိုက်သည်နှင့် Direct အလုပ်လုပ်မည့် Handler
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -175,84 +173,12 @@ const ProductComponent: React.FC = () => {
 
   const isTableLoading = isLoading || itemLoading || unitLoading;
 
-  const productColumns: TableColumn<Product>[] = [
-    {
-      key: "ProductId",
-      title: "ID",
-      className: "p-3 text-slate-500 w-20",
-      render: (item) => item.productId,
-    },
-    {
-      key: "itemName",
-      title: "Item Name",
-      className: "p-3 font-medium text-slate-800",
-    },
-    {
-      key: "unitName",
-      title: "Unit",
-      className: "p-3 text-slate-600",
-    },
-    {
-      key: "imageUrl",
-      title: "Image Path",
-      className: "p-3 font-mono text-xs text-indigo-600",
-      render: (item) => item.imagePath || "—",
-    },
-    {
-      key: "stockQuantity",
-      title: "Quantity",
-      className: "p-3 text-slate-600",
-    },
-    {
-      key: "costPrice",
-      title: "Buy Price",
-      className: "p-3 text-slate-600",
-      render: (item) => `${item.buyPrice} K`,
-    },
-    {
-      key: "salesPrice",
-      title: "Sale Price",
-      className: "p-3 text-slate-600",
-      render: (item) => `${item.salePrice} K`,
-    },
-    {
-      key: "description",
-      title: "Description",
-      className: "p-3 text-slate-600",
-    },
-    // {
-    //   key: "createdDate",
-    //   title: "Created Date",
-    //   className: "p-3 text-slate-500",
-    // },
-    {
-      key: "actions",
-      title: "Actions",
-      className: "p-3 text-center w-36",
-      render: (item) => (
-        <div className="flex gap-2 justify-center">
-          <button
-            type="button"
-            onClick={() => handleEdit(item)}
-            className="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded text-xs transition-colors cursor-pointer"
-          >
-            Edit
-          </button>
-          <button
-            type="button"
-            onClick={() => handleDelete(item.productId)}
-            className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs transition-colors cursor-pointer"
-          >
-            Delete
-          </button>
-        </div>
-      ),
-    },
-  ];
-
   return (
     <div className="max-w-7xl mx-auto">
       <PageTitle title="Products" />
+
+      <ErrorPopup error={error} setError={setError} />
+      <SuccessPopup message={message} setMessage={setMessage} />
 
       {/* Product Form Grid */}
       <div className="bg-white p-6 rounded-4xl shadow-sm border border-slate-200 mb-6">
@@ -261,7 +187,7 @@ const ProductComponent: React.FC = () => {
             <span className="font-medium">Paint Item</span>
             <select
               name="itemId"
-              value={form.itemId}
+              value={form.itemId ?? ""}
               onChange={handleChange}
               className="h-12 w-full px-3 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
             >
@@ -278,7 +204,7 @@ const ProductComponent: React.FC = () => {
             <span className="font-medium">Unit</span>
             <select
               name="unitId"
-              value={form.unitId}
+              value={form.unitId ?? ""}
               onChange={handleChange}
               className="h-12 w-full px-3 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
             >
@@ -291,11 +217,12 @@ const ProductComponent: React.FC = () => {
             </select>
           </label>
 
+          {/* 3. name="stockQuantity" သို့ ပြောင်းထားပါသည် */}
           <Input
             label="Quantity"
-            name="quantity"
+            name="stockQuantity"
             type="number"
-            value={form.quantity}
+            value={form.stockQuantity ?? ""}
             onChange={handleChange}
             placeholder="Quantity"
           />
@@ -304,16 +231,16 @@ const ProductComponent: React.FC = () => {
             label="Description"
             name="description"
             type="text"
-            value={form.description}
+            value={form.description ?? ""}
             onChange={handleChange}
             placeholder="Description"
           />
 
           <InputPrice
             label="Buy Price"
-            name="buyPrice"
+            name="costPrice"
             type="number"
-            value={form.buyPrice}
+            value={form.costPrice ?? ""}
             onChange={handleChange}
             placeholder="Buy Price"
           />
@@ -322,7 +249,7 @@ const ProductComponent: React.FC = () => {
             label="Sale Price"
             name="salePrice"
             type="number"
-            value={form.salePrice}
+            value={form.salePrice ?? ""}
             onChange={handleChange}
             placeholder="Sale Price"
           />
@@ -345,7 +272,6 @@ const ProductComponent: React.FC = () => {
             >
               Choose Image
             </button>
-
             {image ? (
               <div className="flex items-center justify-between h-12 px-4 bg-slate-100 border border-slate-300 rounded-xl text-xs text-slate-700 w-full overflow-hidden">
                 <span className="truncate font-medium flex items-center gap-1.5" title={image.name}>
@@ -386,15 +312,73 @@ const ProductComponent: React.FC = () => {
         </button>
       </div>
 
+      {/* Table Section */}
       <div className="overflow-x-auto rounded-lg border border-slate-200">
-        <Table
-          columns={productColumns}
-          data={products}
-          rowKey={(item) => item.productId}
-          loading={isTableLoading}
-          loadingText="Loading products..."
-          emptyState={<span>No products added yet.</span>}
-        />
+        <table className="w-full text-left border-collapse text-sm">
+          <thead>
+            <tr className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 uppercase text-[11px] tracking-wider">
+              <th className="p-3 text-slate-500 w-20">ID</th>
+              <th className="p-3 font-medium text-slate-800">Item Name</th>
+              <th className="p-3 text-slate-600">Unit</th>
+              <th className="p-3 font-mono text-xs text-indigo-600">Image Path</th>
+              <th className="p-3 text-slate-600">Quantity</th>
+              <th className="p-3 text-slate-600">Buy Price</th>
+              <th className="p-3 text-slate-600">Sale Price</th>
+              <th className="p-3 text-slate-600">Description</th>
+              <th className="p-3 text-center w-36">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-200 text-slate-700">
+            {isTableLoading && products.length === 0 ? (
+              <tr>
+                <td colSpan={9} className="py-8 text-center text-slate-400">
+                  Loading products...
+                </td>
+              </tr>
+            ) : products.length === 0 ? (
+              <tr>
+                <td colSpan={9} className="py-8 text-center text-slate-400">
+                  No products added yet.
+                </td>
+              </tr>
+            ) : (
+              products.map((item) => {
+                const row = item as Product & { itemName?: string; unitName?: string };
+
+                return (
+                  <tr key={item.productId} className="transition-colors hover:bg-slate-50">
+                    <td className="p-3 text-slate-500 w-20">{item.productId}</td>
+                    <td className="p-3 font-medium text-slate-800">{row.itemName ?? item.itemId}</td>
+                    <td className="p-3 text-slate-600">{row.unitName ?? item.unitId}</td>
+                    <td className="p-3 font-mono text-xs text-indigo-600">{item.imagePath || "—"}</td>
+                    <td className="p-3 text-slate-600">{item.stockQuantity}</td>
+                    <td className="p-3 text-slate-600">{item.costPrice} K</td>
+                    <td className="p-3 text-slate-600">{item.salePrice} K</td>
+                    <td className="p-3 text-slate-600">{item.description}</td>
+                    <td className="p-3 text-center w-36">
+                      <div className="flex gap-2 justify-center">
+                        <button
+                          type="button"
+                          onClick={() => handleEdit(item)}
+                          className="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded text-xs transition-colors cursor-pointer"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(item.productId)}
+                          className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs transition-colors cursor-pointer"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );

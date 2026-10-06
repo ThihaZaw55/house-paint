@@ -3,8 +3,8 @@ export interface Product {
   itemId: string;
   unitId: string;
   category: string;
-  quantity: number | string;
-  buyPrice: number | string;
+  stockQuantity: number | string;
+  costPrice: number | string;
   salePrice: number | string;
   description: string;
   createdDate: string;
@@ -14,6 +14,19 @@ export interface Product {
 export interface CreateProduct {
   itemId: string;
   unitId: string;
+  category: string;
+  stockQuantity: number | string;
+  buyPrice: number | string;
+  salePrice: number | string;
+  description: string;
+  createdDate: string;
+  imagePath?: string;
+}
+
+export interface ProductCard {
+  ProductId: number;
+  itemName: string;
+  unitName: string;
   category: string;
   quantity: number | string;
   buyPrice: number | string;
