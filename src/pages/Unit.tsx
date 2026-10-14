@@ -3,6 +3,8 @@ import PageTitle from "../components/ui/PageTitle";
 import { useUnits } from "../hooks/useUnit";
 import type { Unit } from "../types/unit";
 import Input from "../components/forms/Input";
+import ErrorPopup from "@/components/ui/ErrorPopup";
+import SuccessPopup from "@/components/ui/SuccessPopup";
 
 export const UnitPage: React.FC = () => {
   const [formData, setFormData] = useState({ unitName: "" });
@@ -11,7 +13,7 @@ export const UnitPage: React.FC = () => {
   const [fieldErrors, setFieldErrors] = useState<{ unitName?: string }>({});
 
   // Hook မှ Functions များကို ခေါ်ယူခြင်း
-  const { units, loading: fetchLoading, error, setError, saveUnit, deleteUnit } = useUnits();
+  const { units, loading: fetchLoading, message, setMessage,error, setError, saveUnit, deleteUnit } = useUnits();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -75,20 +77,8 @@ export const UnitPage: React.FC = () => {
     <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
       <PageTitle title="Units Management" />
 
-      {error && (
-        <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-center justify-between shadow-sm">
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium">{error}</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setError(null)}
-            className="p-1 text-red-400 hover:text-red-700 hover:bg-red-100 rounded-lg"
-          >
-            ✕
-          </button>
-        </div>
-      )}
+      <ErrorPopup error={error} setError={setError} />
+      <SuccessPopup message={message} setMessage={setMessage} />
 
       {/* Form Input Card */}
       <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">

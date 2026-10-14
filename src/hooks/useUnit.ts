@@ -6,6 +6,7 @@ import type { AxiosError } from "axios";
 export function useUnits() {
   const [units, setUnits] = useState<Unit[]>([]);
   const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // READ
@@ -31,12 +32,14 @@ export function useUnits() {
   const saveUnit = async (id: number | null, data: { unitName: string }) => {
     try {
       setError(null);
+      let res;
       if (id !== null) {
-        await UnitService.updateUnit(id, data);
+       res = await UnitService.updateUnit(id, data);
       } else {
-        await UnitService.createUnit(data);
+        res =await UnitService.createUnit(data);
       }
-      await fetchUnits(); // Auto Refresh
+      setMessage(res.message);
+      await fetchUnits();
       return true; // Success status ပြန်ပေးရန်
     } catch (err) {
       const axiosError = err as AxiosError<{ message?: string }>;
@@ -48,8 +51,10 @@ export function useUnits() {
   // DELETE
   const deleteUnit = async (id: number) => {
     try {
+      let res;
       setError(null);
-      await UnitService.deleteUnit(id);
+      res = await UnitService.deleteUnit(id);
+      setMessage(res.message);
       await fetchUnits(); // Auto Refresh
       return true;
     } catch (err) {
@@ -62,6 +67,8 @@ export function useUnits() {
   return {
     units,
     loading,
+    message,
+    setMessage,
     error,
     setError,
     fetchUnits,

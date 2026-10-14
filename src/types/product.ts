@@ -16,7 +16,7 @@ export interface CreateProduct {
   unitId: string;
   category: string;
   stockQuantity: number | string;
-  buyPrice: number | string;
+  costPrice: number | string;
   salePrice: number | string;
   description: string;
   createdDate: string;
@@ -29,7 +29,7 @@ export interface ProductCard {
   unitName: string;
   category: string;
   quantity: number | string;
-  buyPrice: number | string;
+  costPrice: number | string;
   salePrice: number | string;
   description: string;
   createdDate: string;
@@ -42,7 +42,7 @@ export interface UpdateProduct {
   unit: string;
   category: string;
   quantity: number | string;
-  buyPrice: number | string;
+  costPrice: number | string;
   salePrice: number | string;
   description: string;
   createdDate: string;

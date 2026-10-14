@@ -62,6 +62,7 @@ export default function useProduct(){
             if(response && response.message){
                 setMessage(response.message);
             }
+            setMessage(response.message);
             await fetchProducts();
             return true;
         }catch(err){

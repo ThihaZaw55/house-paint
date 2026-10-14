@@ -90,7 +90,7 @@ const ProductComponent: React.FC = () => {
       unitId: String(form.unitId),
       category: form.category,
       stockQuantity: Number(form.stockQuantity),
-      buyPrice: Number(form.costPrice),
+      costPrice: Number(form.costPrice),
       salePrice: Number(form.salePrice),
       description: form.description || "",
       createdDate: form.createdDate || new Date().toISOString(),
@@ -218,14 +218,14 @@ const ProductComponent: React.FC = () => {
           </label>
 
           {/* 3. name="stockQuantity" သို့ ပြောင်းထားပါသည် */}
-          <Input
+          {/* <Input
             label="Quantity"
             name="stockQuantity"
             type="number"
             value={form.stockQuantity ?? ""}
             onChange={handleChange}
             placeholder="Quantity"
-          />
+          /> */}
 
           <Input
             label="Description"
@@ -235,7 +235,7 @@ const ProductComponent: React.FC = () => {
             onChange={handleChange}
             placeholder="Description"
           />
-
+{/* 
           <InputPrice
             label="Buy Price"
             name="costPrice"
@@ -243,7 +243,7 @@ const ProductComponent: React.FC = () => {
             value={form.costPrice ?? ""}
             onChange={handleChange}
             placeholder="Buy Price"
-          />
+          /> */}
 
           <InputPrice
             label="Sale Price"
@@ -255,6 +255,7 @@ const ProductComponent: React.FC = () => {
           />
 
           {/* Hidden File Input */}
+          <div>
           <input
             type="file"
             ref={fileInputRef}
@@ -273,7 +274,7 @@ const ProductComponent: React.FC = () => {
               Choose Image
             </button>
             {image ? (
-              <div className="flex items-center justify-between h-12 px-4 bg-slate-100 border border-slate-300 rounded-xl text-xs text-slate-700 w-full overflow-hidden">
+              <div className="flex items-center justify-between h-12 px-4 bg-slate-100 border border-slate-300 rounded-xl text-xs text-slate-700 overflow-hidden">
                 <span className="truncate font-medium flex items-center gap-1.5" title={image.name}>
                   📁 <span>{image.name}</span>
                 </span>
@@ -286,13 +287,15 @@ const ProductComponent: React.FC = () => {
                 </button>
               </div>
             ) : (
-              <div className="flex items-center h-12 px-4 bg-slate-50 border border-dashed border-slate-300 rounded-xl text-xs text-slate-400 w-full">
+              <div className="flex items-center h-12 px-4 bg-slate-50 border border-dashed border-slate-300 rounded-xl text-xs text-slate-400 ">
                 No file selected
               </div>
             )}
+            </div>
           </div>
         </form>
       </div>
+      
 
       {/* Form Action Buttons */}
       <div className="flex gap-3 mb-8">
@@ -350,7 +353,7 @@ const ProductComponent: React.FC = () => {
                     <td className="p-3 text-slate-500 w-20">{item.productId}</td>
                     <td className="p-3 font-medium text-slate-800">{row.itemName ?? item.itemId}</td>
                     <td className="p-3 text-slate-600">{row.unitName ?? item.unitId}</td>
-                    <td className="p-3 font-mono text-xs text-indigo-600">{item.imagePath || "—"}</td>
+                    <td className="p-3 font-mono text-xs text-indigo-600">{(item.imagePath)?.split("/").pop() || "—"}</td>
                     <td className="p-3 text-slate-600">{item.stockQuantity}</td>
                     <td className="p-3 text-slate-600">{item.costPrice} K</td>
                     <td className="p-3 text-slate-600">{item.salePrice} K</td>
