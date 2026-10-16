@@ -26,7 +26,7 @@ import PageTitle from "../components/ui/PageTitle";
 
   const Purchase: React.FC = () => {
     // --- Products (mock / localStorage) ---
-    const [products, setProducts] = useState<Product[]>(() => {
+    const [products] = useState<Product[]>(() => {
       try {
         const raw = localStorage.getItem(STORAGE.PRODUCTS);
         if (raw) return JSON.parse(raw) as Product[];
