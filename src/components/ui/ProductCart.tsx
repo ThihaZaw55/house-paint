@@ -8,6 +8,7 @@ interface ProductCardProps {
   productName?: string;
   unitName?: string;
   salePrice?: number | string;
+  costPrice?: number | string;
   stockQuantity?: number | string;
   imagePath?: string;
   color?: string;
@@ -23,6 +24,7 @@ export default function ProductCard(props: ProductCardProps) {
   const name = props.itemName ?? props.productName ?? fallbackName;
   const unit = props.unitName ?? "Unit";
   const price = Number(props.salePrice ?? 0);
+  const costPrice = Number(props.costPrice ?? 0);
   const image = props.imagePath ?? "";
   const colour = props.color ?? props.colour ?? props.category ?? "Classic";
   const description = props.description ?? "Premium finish for your space.";
@@ -37,7 +39,7 @@ export default function ProductCard(props: ProductCardProps) {
   const decrease = () => setQty((current) => Math.max(1, current - 1));
 
   const handleCart = () => {
-    addToCart({ id: productId, name, price, qty });
+    addToCart({ id: productId, name, price, qty, costPrice });
     setAdded(true);
     window.setTimeout(() => setAdded(false), 1400);
   };

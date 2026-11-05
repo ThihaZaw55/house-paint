@@ -1,7 +1,7 @@
 import { Outlet } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Breadcrumb from "./Breadcrumb";
-import Footer from "./Footer";
+//import Footer from "./Footer";
 export default function Layout() {
   return (
     <>
@@ -12,7 +12,7 @@ export default function Layout() {
           <Outlet />
         </div>
       </div>
-      <Footer />
+      {/* <Footer /> */}
     </>
   );
 }
