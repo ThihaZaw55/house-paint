@@ -3,19 +3,39 @@ import { useCart } from "../context/CartContext";
 import PageTitle from "../components/ui/PageTitle";
 import usePayment from "../hooks/usePayment";
 
+const formatInvoiceDate = (dateString: string) => {
+  const date = new Date(`${dateString}T00:00:00`);
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+
+  return `${day}${month}${year}`;
+};
+
+const createInvoiceNumber = (dateString: string, sequence: number) => {
+  return `${String(sequence).padStart(4, "0")}${formatInvoiceDate(dateString)}`;
+};
+
 export default function Payment() {
   const { cart, removeFromCart, clearCart } = useCart();
   const { completePayment, isLoading, error, message, setError, setMessage } = usePayment();
 
+  const [invoiceSequence, setInvoiceSequence] = useState(1);
+  const [invoiceNumber, setInvoiceNumber] = useState(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    return createInvoiceNumber(today, 1);
+  });
+  const [saleDate, setSaleDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [customer, setCustomer] = useState("");
   const [phone, setPhone] = useState("");
   const [discount, setDiscount] = useState(0);
   const [cash, setCash] = useState(0);
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
-  const tax = subtotal * 0.05;
-  const total = subtotal + tax - discount;
+  // const tax = subtotal * 0.05;
+  const total  = subtotal - discount;
   const change = Math.max(cash - total, 0);
+
 
   const handleCompletePayment = async () => {
     if (!cart.length) {
@@ -29,6 +49,8 @@ export default function Payment() {
     }
 
     const payload = {
+      invoice: invoiceNumber.trim() || createInvoiceNumber(saleDate || new Date().toISOString().slice(0, 10), invoiceSequence),
+      saleDate: saleDate || new Date().toISOString().slice(0, 10),
       customerName: customer.trim() || "Walk-in Customer",
       phone: phone.trim(),
       paymentMethod: "CASH",
@@ -45,10 +67,13 @@ export default function Payment() {
         discountPrice: 0,
       })),
     };
-
+console.log("Complete Sale Payload:", payload);
     const response = await completePayment(payload);
 
     if (response && response.success) {
+      const nextSequence = invoiceSequence + 1;
+      setInvoiceSequence(nextSequence);
+      setInvoiceNumber(createInvoiceNumber(saleDate || new Date().toISOString(), nextSequence));
       setCustomer("");
       setPhone("");
       setDiscount(0);
@@ -98,6 +123,34 @@ export default function Payment() {
 
         <div className="bg-white p-6 rounded-xl shadow space-y-4">
           <h2 className="text-xl font-semibold">Customer Info</h2>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-600">Invoice No</label>
+              <input
+                type="text"
+                placeholder="000105112026"
+                value={invoiceNumber}
+                className="w-full border p-2 rounded bg-slate-100"
+                readOnly
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-600">Sale Date</label>
+              <input
+                type="date"
+                value={saleDate}
+                onChange={(e) => {
+                  const nextDate = e.target.value;
+                  setSaleDate(nextDate);
+                  setInvoiceSequence(1);
+                  setInvoiceNumber(createInvoiceNumber(nextDate || new Date().toISOString().slice(0, 10), 1));
+                }}
+                className="w-full border p-2 rounded"
+              />
+            </div>
+          </div>
 
           <input
             type="text"

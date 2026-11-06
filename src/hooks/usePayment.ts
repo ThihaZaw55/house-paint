@@ -1,9 +1,7 @@
 import { useState } from "react";
 import type { AxiosError } from "axios";
-import {
-  PaymentService,
-  type CompleteSaleRequest,
-} from "../services/payment.service";
+import { PaymentService } from "../services/payment.service";
+import type { CompleteSaleRequest } from "../types/payment";
 
 export default function usePayment() {
   const [isLoading, setIsLoading] = useState(false);
