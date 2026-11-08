@@ -294,23 +294,23 @@ const ProductComponent: React.FC = () => {
               placeholder="Sale Price"
             />
 
-            <InputPrice
+            {/* <InputPrice
               label="Cost Price"
               name="costPrice"
               type="number"
               value={form.costPrice ?? ""}
               onChange={handleChange}
               placeholder="Cost Price"
-            />
+            /> */}
 
-            <InputPrice
+            {/* <InputPrice
               label="Stock Quantity"
               name="stockQuantity"
               type="number"
               value={form.stockQuantity ?? ""}
               onChange={handleChange}
               placeholder="Quantity"
-            />
+            /> */}
 
             <div className="md:col-span-2 xl:col-span-4">
               <input

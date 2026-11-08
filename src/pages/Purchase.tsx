@@ -1,475 +1,344 @@
-import React, { useMemo, useState } from "react";
+
+import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } from "react";
+import type { AxiosError } from "axios";
 import PageTitle from "../components/ui/PageTitle";
-import useProduct from "@/hooks/useProduct";
-import type { Product } from "@/types/product";
+import ErrorPopup from "../components/ui/ErrorPopup";
+import SuccessPopup from "../components/ui/SuccessPopup";
+import InputPrice from "../components/ui/InputPrice";
+import useItem from "../hooks/useItem";
+import useProduct from "../hooks/useProduct";
+import { useUnits } from "../hooks/useUnit";
+import { PurchaseService } from "../services/purchase.service";
+import type { Purchase, CreatePurchase } from "../types/purchase";
+import type { Product } from "../types/product";
 
-type PurchaseFormState = {
-  itemId: string;
-  unitId: string;
-  quantity: string;
-  buyPrice: string;
-  salePrice: string;
+type ProductWithNames = Product & {
+  itemName?: string;
+  unitName?: string;
 };
 
-type ProductOption = {
-  itemId: string;
-  itemName: string;
-};
+const fieldClassName =
+  "h-12 w-full rounded-xl border border-slate-300 bg-slate-50 px-3 text-sm text-slate-800 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:opacity-60";
 
-type UnitOption = {
-  unitId: string;
-  unitName: string;
-};
+const today = () => new Date().toISOString().slice(0, 10);
 
-type PurchaseLine = {
-  id: string;
-  productKey: string;
-  itemId: string;
-  itemName: string;
-  unitId: string;
-  unitName: string;
-  quantity: number;
-  buyPrice: number;
-  salePrice: number;
-  subtotal: number;
-  purchasedAt: string;
-};
+export default function PurchasePage() {
+  const { products, isLoading: productsLoading } = useProduct();
+  const { items, loading: itemLoading, error: itemError, setError: setItemError } = useItem();
+  const { units, loading: unitLoading, error: unitError, setError: setUnitError } = useUnits();
+  const [purchases, setPurchases] = useState<Purchase[]>([]);
+  const [itemId, setItemId] = useState("");
+  const [unitId, setUnitId] = useState("");
+  const [costPrice, setCostPrice] = useState<number | string>("");
+  const [salePrice, setSalePrice] = useState<number | string>("");
+  const [quantity, setQuantity] = useState<number | string>("");
+  const [purchaseDate, setPurchaseDate] = useState(today());
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [purchaseLoading, setPurchaseLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
 
-const INITIAL_FORM_STATE: PurchaseFormState = {
-  itemId: "",
-  unitId: "",
-  quantity: "",
-  buyPrice: "",
-  salePrice: "",
-};
+  const catalogProducts = products as ProductWithNames[];
+  const productsForItem = catalogProducts.filter(
+    (product) => String(product.itemId) === itemId,
+  );
+  const availableItemIds = new Set(catalogProducts.map((product) => String(product.itemId)));
+  const selectedProduct = productsForItem.find(
+    (product) => String(product.unitId) === unitId,
+  );
 
-const formatMoney = (value: number) => `${Number(value || 0).toLocaleString()} Ks`;
+  const getProduct = (productId: number) =>
+    catalogProducts.find((product) => product.productId === productId);
 
-const PurchasePage: React.FC = () => {
-  const { products, isLoading } = useProduct();
+  const getItemName = (id: string) =>
+    catalogProducts.find((product) => String(product.itemId) === id)?.itemName ??
+    items.find((item) => String(item.itemId) === id)?.itemName ??
+    id;
 
-  const itemOptions = useMemo<ProductOption[]>(() => {
-    const itemMap = new Map<string, string>();
-
-    products.forEach((product) => {
-      const typedProduct = product as Product & {
-        itemName?: string;
-      };
-
-      const itemId = String(product.itemId ?? "");
-      if (!itemId) return;
-
-      const itemName = typedProduct.itemName ?? `Paint Item ${itemId}`;
-      if (!itemMap.has(itemId)) {
-        itemMap.set(itemId, itemName);
-      }
-    });
-
-    return Array.from(itemMap.entries())
-      .map(([itemId, itemName]) => ({ itemId, itemName }))
-      .sort((a, b) => a.itemName.localeCompare(b.itemName));
-  }, [products]);
-
-  const unitOptions = useMemo<UnitOption[]>(() => {
-    const unitMap = new Map<string, string>();
-
-    products.forEach((product) => {
-      const typedProduct = product as Product & {
-        unitName?: string;
-      };
-
-      const unitId = String(product.unitId ?? "");
-      if (!unitId) return;
-
-      const unitName = typedProduct.unitName ?? `Unit ${unitId}`;
-      if (!unitMap.has(unitId)) {
-        unitMap.set(unitId, unitName);
-      }
-    });
-
-    return Array.from(unitMap.entries())
-      .map(([unitId, unitName]) => ({ unitId, unitName }))
-      .sort((a, b) => a.unitName.localeCompare(b.unitName));
-  }, [products]);
-
-  const [form, setForm] = useState<PurchaseFormState>(INITIAL_FORM_STATE);
-  const [purchaseBatch, setPurchaseBatch] = useState<PurchaseLine[]>([]);
-
-  const visibleUnitOptions = useMemo<UnitOption[]>(() => {
-    if (!form.itemId) return unitOptions;
-
-    const selectedUnitIds = new Set(
-      products
-        .filter((product) => String(product.itemId ?? "") === form.itemId)
-        .map((product) => String(product.unitId ?? ""))
-        .filter(Boolean)
+  const getUnitName = (product: ProductWithNames | undefined) => {
+    if (!product) return "Unknown unit";
+    return (
+      product.unitName ??
+      units.find((unit) => String(unit.unitId) === String(product.unitId))?.unitName ??
+      String(product.unitId)
     );
-
-    const filtered = unitOptions.filter((unit) => selectedUnitIds.has(unit.unitId));
-    return filtered.length > 0 ? filtered : unitOptions;
-  }, [form.itemId, products, unitOptions]);
-
-  const subtotal = useMemo(() => {
-    const quantity = Number(form.quantity) || 0;
-    const buyPrice = Number(form.buyPrice) || 0;
-    return quantity * buyPrice;
-  }, [form.buyPrice, form.quantity]);
-
-  const todayKey = new Date().toLocaleDateString();
-
-  const todayPurchases = useMemo(
-    () =>
-      purchaseBatch.filter(
-        (entry) => new Date(entry.purchasedAt).toLocaleDateString() === todayKey
-      ),
-    [purchaseBatch, todayKey]
-  );
-
-  const totalPurchaseAmount = todayPurchases.reduce(
-    (sum, entry) => sum + entry.subtotal,
-    0
-  );
-  const totalQuantityPurchasedToday = todayPurchases.reduce(
-    (sum, entry) => sum + entry.quantity,
-    0
-  );
-  const totalUniqueItemsBoughtToday = new Set(
-    todayPurchases.map((entry) => entry.productKey)
-  ).size;
-
-  const handleChange = (
-    event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = event.target;
-
-    setForm((prev) => {
-      if (name !== "itemId") {
-        return { ...prev, [name]: value };
-      }
-
-      const matchingUnits = products
-        .filter((product) => String(product.itemId ?? "") === value)
-        .map((product) => String(product.unitId ?? ""))
-        .filter(Boolean);
-
-      const nextUnitId = matchingUnits.includes(prev.unitId)
-        ? prev.unitId
-        : matchingUnits[0] ?? "";
-
-      return {
-        ...prev,
-        itemId: value,
-        unitId: nextUnitId,
-      };
-    });
   };
 
-  const handleAddPurchase = () => {
-    const itemId = form.itemId;
-    const unitId = form.unitId;
-    const quantity = Number(form.quantity);
-    const buyPrice = Number(form.buyPrice);
-    const salePrice = Number(form.salePrice);
-
-    if (!itemId || !unitId) {
-      alert("Please select both the paint item and the unit.");
-      return;
+  const loadPurchases = useCallback(async () => {
+    try {
+      setError(null);
+      const response = await PurchaseService.getAll();
+      setPurchases(response.data ?? []);
+    } catch (err) {
+      const axiosError = err as AxiosError<{ message?: string }>;
+      setError(axiosError.response?.data?.message || "Failed to load purchases");
+    } finally {
+      setPurchaseLoading(false);
     }
+  }, []);
 
-    if (!quantity || quantity <= 0) {
-      alert("Please enter a valid quantity.");
-      return;
-    }
+  useEffect(() => {
+    void loadPurchases();
+  }, [loadPurchases]);
 
-    if (!buyPrice || buyPrice <= 0) {
-      alert("Please enter a valid buy price.");
-      return;
-    }
-
-    const selectedItem = itemOptions.find((option) => option.itemId === itemId);
-    const selectedUnit = unitOptions.find((option) => option.unitId === unitId);
-
-    if (!selectedItem || !selectedUnit) {
-      alert("Selected item or unit is invalid.");
-      return;
-    }
-
-    const productKey = `${itemId}-${unitId}`;
-    const currentDate = new Date().toISOString();
-
-    setPurchaseBatch((prev) => {
-      const existingIndex = prev.findIndex((entry) => entry.productKey === productKey);
-
-      if (existingIndex >= 0) {
-        const updated = [...prev];
-        const existingEntry = updated[existingIndex];
-        const mergedQuantity = existingEntry.quantity + quantity;
-
-        updated[existingIndex] = {
-          ...existingEntry,
-          quantity: mergedQuantity,
-          buyPrice,
-          salePrice,
-          subtotal: mergedQuantity * buyPrice,
-          purchasedAt: currentDate,
-        };
-
-        return updated;
-      }
-
-      return [
-        ...prev,
-        {
-          id: `${Date.now()}`,
-          productKey,
-          itemId,
-          itemName: selectedItem.itemName,
-          unitId,
-          unitName: selectedUnit.unitName,
-          quantity,
-          buyPrice,
-          salePrice,
-          subtotal: quantity * buyPrice,
-          purchasedAt: currentDate,
-        },
-      ];
-    });
-
-    setForm(INITIAL_FORM_STATE);
+  const resetForm = () => {
+    setItemId("");
+    setUnitId("");
+    setCostPrice("");
+    setSalePrice("");
+    setQuantity("");
+    setPurchaseDate(today());
+    setEditingId(null);
   };
 
-  const handleClearPurchaseList = () => {
-    setPurchaseBatch([]);
+  const handleItemChange = (nextItemId: string) => {
+    const nextProduct = catalogProducts.find(
+      (product) => String(product.itemId) === nextItemId,
+    );
+    setItemId(nextItemId);
+    setUnitId(nextProduct ? String(nextProduct.unitId) : "");
+    setCostPrice(nextProduct?.costPrice ?? "");
+    setSalePrice(nextProduct?.salePrice ?? "");
+  };
+
+  const handleUnitChange = (nextUnitId: string) => {
+    const nextProduct = productsForItem.find(
+      (product) => String(product.unitId) === nextUnitId,
+    );
+    setUnitId(nextUnitId);
+    setCostPrice(nextProduct?.costPrice ?? "");
+    setSalePrice(nextProduct?.salePrice ?? "");
+  };
+
+  const handleEdit = (purchase: Purchase) => {
+    const product = getProduct(purchase.productId);
+    if (!product) {
+      setError("This purchase's product is not available in the product catalog.");
+      return;
+    }
+    setEditingId(purchase.purchaseId);
+    setItemId(String(product.itemId));
+    setUnitId(String(product.unitId));
+    setCostPrice(purchase.costPrice);
+    setSalePrice(purchase.salePrice);
+    setQuantity(purchase.quantity);
+    setPurchaseDate(purchase.purchaseDate?.slice(0, 10) || today());
+    setError(null);
+    setMessage(null);
+  };
+
+  const handleSave = async () => {
+    if (!selectedProduct) {
+      setError("Select a paint item and unit before saving.");
+      return;
+    }
+    if (quantity === "" || Number(quantity) <= 0) {
+      setError("Quantity must be greater than zero.");
+      return;
+    }
+
+    const payload: CreatePurchase = {
+      productId: selectedProduct.productId,
+      costPrice: Number(costPrice),
+      salePrice: Number(salePrice),
+      quantity: Number(quantity),
+      purchaseDate,
+      createdDate: editingId
+        ? purchases.find((purchase) => purchase.purchaseId === editingId)?.createdDate ?? new Date().toISOString()
+        : new Date().toISOString(),
+    };
+
+    try {
+      setSaving(true);
+      setError(null);
+      setMessage(null);
+      const response = editingId
+        ? await PurchaseService.update(editingId, payload)
+        : await PurchaseService.create(payload);
+      setMessage(response.message || (editingId ? "Purchase updated" : "Purchase created"));
+      resetForm();
+      setPurchaseLoading(true);
+      await loadPurchases();
+    } catch (err) {
+      const axiosError = err as AxiosError<{ message?: string }>;
+      setError(axiosError.response?.data?.message || "Failed to save purchase");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (purchaseId: number) => {
+    if (!window.confirm("Are you sure you want to delete this purchase?")) return;
+
+    try {
+      setError(null);
+      setMessage(null);
+      const response = await PurchaseService.delete(purchaseId);
+      setMessage(response.message || "Purchase deleted");
+      if (editingId === purchaseId) resetForm();
+      setPurchaseLoading(true);
+      await loadPurchases();
+    } catch (err) {
+      const axiosError = err as AxiosError<{ message?: string }>;
+      setError(axiosError.response?.data?.message || "Failed to delete purchase");
+    }
+  };
+
+  const loading = productsLoading || itemLoading || unitLoading;
+  const setPopupError: Dispatch<SetStateAction<string | null>> = (nextError) => {
+    setError(nextError);
+    setItemError(nextError);
+    setUnitError(nextError);
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 px-4 py-6 md:px-6 lg:px-8">
+    <main className="min-h-screen bg-slate-50 px-4 py-6 md:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl space-y-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <PageTitle title="Purchase Stock" />
-            <p className="mt-2 text-sm text-slate-500">
-              Record stock-in purchases and track today&apos;s buying activity.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="rounded-2xl border border-slate-200 bg-white px-3.5 py-2 shadow-sm">
-              <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">
-                Total Purchases Today
-              </p>
-              <p className="mt-1 text-lg font-bold text-slate-800">
-                {formatMoney(totalPurchaseAmount)}
-              </p>
-            </div>
-            <div className="rounded-2xl border border-indigo-200 bg-indigo-50 px-3.5 py-2 shadow-sm">
-              <p className="text-[11px] uppercase tracking-[0.2em] text-indigo-600">
-                Total Quantity
-              </p>
-              <p className="mt-1 text-lg font-bold text-indigo-700">
-                {totalQuantityPurchasedToday}
-              </p>
-            </div>
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-3.5 py-2 shadow-sm">
-              <p className="text-[11px] uppercase tracking-[0.2em] text-emerald-600">
-                Unique Items
-              </p>
-              <p className="mt-1 text-lg font-bold text-emerald-700">
-                {totalUniqueItemsBoughtToday}
-              </p>
-            </div>
-          </div>
+        <div>
+          <PageTitle title="Purchase" />
+          <p className="mt-2 text-sm text-slate-500">
+            Record paint purchases and review your purchase history.
+          </p>
         </div>
 
-        <div className="rounded-[30px] border border-slate-200 bg-white p-5 shadow-[0_12px_30px_rgba(15,23,42,0.06)] md:p-6">
-          <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-indigo-500">
-                Purchase details
-              </p>
-              <h3 className="mt-1 text-xl font-semibold text-slate-800">
-                Add stock-in item
-              </h3>
-            </div>
+        <ErrorPopup error={error ?? itemError ?? unitError} setError={setPopupError} />
+        <SuccessPopup message={message} setMessage={setMessage} />
 
-            <div className="flex flex-wrap items-center gap-2">
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+          <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h2 className="text-base font-semibold text-slate-800">
+              {editingId ? "Edit purchase" : "New purchase"}
+            </h2>
+            <div className="flex gap-2">
+              {editingId !== null && (
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+              )}
               <button
                 type="button"
-                onClick={() => setForm(INITIAL_FORM_STATE)}
-                className="rounded-xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-200"
+                onClick={() => void handleSave()}
+                disabled={saving || loading}
+                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Clear
-              </button>
-              <button
-                type="button"
-                onClick={handleAddPurchase}
-                className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
-              >
-                Add to Purchase List
+                {saving ? "Saving..." : editingId ? "Update purchase" : "Save purchase"}
               </button>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
-            <label className="space-y-2 text-sm text-slate-700 xl:col-span-2">
-              <span className="font-medium">Paint Item</span>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <label className="space-y-2 text-sm text-slate-700">
+              <span className="font-medium">Paint item</span>
               <select
-                name="itemId"
-                value={form.itemId}
-                onChange={handleChange}
-                disabled={isLoading}
-                className="h-12 w-full rounded-xl border border-slate-300 bg-slate-50 px-3 text-sm text-slate-800 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:opacity-60"
+                value={itemId}
+                onChange={(event) => handleItemChange(event.target.value)}
+                disabled={loading}
+                className={fieldClassName}
               >
-                <option value="">Select a product</option>
-                {itemOptions.map((item) => (
-                  <option key={item.itemId} value={item.itemId}>
-                    {item.itemName}
-                  </option>
-                ))}
+                <option value="">{loading ? "Loading products..." : "Select an item"}</option>
+                {items
+                  .filter((item) => availableItemIds.has(String(item.itemId)))
+                  .map((item) => (
+                    <option key={item.itemId} value={item.itemId}>{item.itemName}</option>
+                  ))}
+                {Array.from(availableItemIds)
+                  .filter((id) => !items.some((item) => String(item.itemId) === id))
+                  .map((id) => (
+                    <option key={id} value={id}>{getItemName(id)}</option>
+                  ))}
               </select>
             </label>
 
             <label className="space-y-2 text-sm text-slate-700">
               <span className="font-medium">Unit</span>
               <select
-                name="unitId"
-                value={form.unitId}
-                onChange={handleChange}
-                disabled={isLoading || !form.itemId}
-                className="h-12 w-full rounded-xl border border-slate-300 bg-slate-50 px-3 text-sm text-slate-800 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:opacity-60"
+                value={unitId}
+                onChange={(event) => handleUnitChange(event.target.value)}
+                disabled={!itemId || loading}
+                className={fieldClassName}
               >
-                <option value="">{form.itemId ? "Select unit" : "Choose a product first"}</option>
-                {visibleUnitOptions.map((unit) => (
-                  <option key={unit.unitId} value={unit.unitId}>
-                    {unit.unitName}
-                  </option>
+                <option value="">{itemId ? "Select a unit" : "Choose an item first"}</option>
+                {Array.from(new Map(productsForItem.map((product) => [String(product.unitId), product])).values()).map((product) => (
+                  <option key={product.unitId} value={product.unitId}>{getUnitName(product)}</option>
                 ))}
               </select>
             </label>
 
             <label className="space-y-2 text-sm text-slate-700">
-              <span className="font-medium">Quantity</span>
+              <span className="font-medium">Purchase date</span>
               <input
-                type="number"
-                name="quantity"
-                min="1"
-                value={form.quantity}
-                onChange={handleChange}
-                placeholder="Qty"
-                className="h-12 w-full rounded-xl border border-slate-300 bg-slate-50 px-3 text-sm text-slate-800 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+                type="date"
+                value={purchaseDate}
+                onChange={(event) => setPurchaseDate(event.target.value)}
+                className={fieldClassName}
               />
             </label>
 
-            <label className="space-y-2 text-sm text-slate-700">
-              <span className="font-medium">Buy Price</span>
-              <input
-                type="number"
-                name="buyPrice"
-                min="0"
-                step="0.01"
-                value={form.buyPrice}
-                onChange={handleChange}
-                placeholder="Buy price"
-                className="h-12 w-full rounded-xl border border-slate-300 bg-slate-50 px-3 text-sm text-slate-800 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100"
-              />
-            </label>
-
-            <label className="space-y-2 text-sm text-slate-700 xl:col-span-2">
-              <span className="font-medium">Sale Price</span>
-              <input
-                type="number"
-                name="salePrice"
-                min="0"
-                step="0.01"
-                value={form.salePrice}
-                onChange={handleChange}
-                placeholder="Sale price"
-                className="h-12 w-full rounded-xl border border-slate-300 bg-slate-50 px-3 text-sm text-slate-800 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100"
-              />
-            </label>
-
-            <div className="flex items-end xl:col-span-3">
-              <div className="w-full rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-emerald-600">
-                  Subtotal
-                </p>
-                <p className="mt-2 text-xl font-bold text-emerald-700">
-                  {formatMoney(subtotal)}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="overflow-hidden rounded-[30px] border border-slate-200 bg-white shadow-[0_12px_30px_rgba(15,23,42,0.04)]">
-          <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-5 py-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
-                Today
-              </p>
-              <h3 className="mt-1 text-lg font-semibold text-slate-800">
-                Today&apos;s Purchases
-              </h3>
-            </div>
-            <button
-              type="button"
-              onClick={handleClearPurchaseList}
-              className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-100"
-            >
-              Clear batch
-            </button>
+            <InputPrice label="Cost price" name="costPrice" type="number" value={costPrice} onChange={(event) => setCostPrice(event.target.value)} placeholder="Cost price" />
+            <InputPrice label="Sale price" name="salePrice" type="number" value={salePrice} onChange={(event) => setSalePrice(event.target.value)} placeholder="Sale price" />
+            <InputPrice label="Quantity" name="quantity" type="number" value={quantity} onChange={(event) => setQuantity(event.target.value)} placeholder="Quantity" />
           </div>
 
+          {selectedProduct && (
+            <p className="mt-5 border-t border-slate-100 pt-4 text-sm text-slate-500">
+              Product: <span className="font-medium text-slate-700">{getItemName(itemId)} / {getUnitName(selectedProduct)}</span>
+            </p>
+          )}
+        </section>
+
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+            <h2 className="font-semibold text-slate-800">Purchase history</h2>
+            <span className="text-sm text-slate-500">{purchases.length} records</span>
+          </div>
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-left text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50 text-slate-600 uppercase tracking-[0.12em]">
-                  <th className="p-3 text-[11px] font-semibold">Product</th>
-                  <th className="p-3 text-[11px] font-semibold">Unit</th>
-                  <th className="p-3 text-[11px] font-semibold">Qty</th>
-                  <th className="p-3 text-[11px] font-semibold">Buy Price</th>
-                  <th className="p-3 text-[11px] font-semibold">Total Amount</th>
-                  <th className="p-3 text-[11px] font-semibold">Sale Price</th>
-                  <th className="p-3 text-[11px] font-semibold">Date / Time</th>
+            <table className="w-full min-w-[850px] border-collapse text-left text-sm">
+              <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+                <tr>
+                  <th className="px-4 py-3 font-semibold">Date</th>
+                  <th className="px-4 py-3 font-semibold">Paint item</th>
+                  <th className="px-4 py-3 font-semibold">Unit</th>
+                  <th className="px-4 py-3 text-right font-semibold">Quantity</th>
+                  <th className="px-4 py-3 text-right font-semibold">Cost price</th>
+                  <th className="px-4 py-3 text-right font-semibold">Sale price</th>
+                  <th className="px-4 py-3 text-right font-semibold">Actions</th>
                 </tr>
               </thead>
-
-              <tbody className="divide-y divide-slate-200 text-slate-700">
-                {todayPurchases.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="py-10 text-center text-slate-400">
-                      No purchases recorded for today yet.
-                    </td>
-                  </tr>
-                ) : (
-                  todayPurchases.map((entry) => (
-                    <tr key={entry.id} className="transition-colors hover:bg-slate-50">
-                      <td className="p-3 font-medium text-slate-800">
-                        {entry.itemName}
-                      </td>
-                      <td className="p-3 text-slate-600">{entry.unitName}</td>
-                      <td className="p-3 text-slate-600">{entry.quantity}</td>
-                      <td className="p-3 text-slate-600">{formatMoney(entry.buyPrice)}</td>
-                      <td className="p-3 font-semibold text-slate-800">
-                        {formatMoney(entry.subtotal)}
-                      </td>
-                      <td className="p-3 text-slate-600">{formatMoney(entry.salePrice)}</td>
-                      <td className="p-3 text-slate-600">
-                        {new Date(entry.purchasedAt).toLocaleString([], {
-                          dateStyle: "medium",
-                          timeStyle: "short",
-                        })}
+              <tbody className="divide-y divide-slate-100 text-slate-700">
+                {purchaseLoading ? (
+                  <tr><td colSpan={7} className="px-4 py-10 text-center text-slate-500">Loading purchases...</td></tr>
+                ) : purchases.length === 0 ? (
+                  <tr><td colSpan={7} className="px-4 py-10 text-center text-slate-500">No purchases recorded yet.</td></tr>
+                ) : purchases.map((purchase) => {
+                  const product = getProduct(purchase.productId);
+                  return (
+                    <tr key={purchase.purchaseId} className="hover:bg-slate-50">
+                      <td className="whitespace-nowrap px-4 py-3">{purchase.purchaseDate?.slice(0, 10) || "-"}</td>
+                      <td className="px-4 py-3 font-medium">{product ? getItemName(String(product.itemId)) : `Product #${purchase.productId}`}</td>
+                      <td className="px-4 py-3">{getUnitName(product)}</td>
+                      <td className="px-4 py-3 text-right">{purchase.quantity}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-right">{Number(purchase.costPrice).toLocaleString()} Ks</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-right">{Number(purchase.salePrice).toLocaleString()} Ks</td>
+                      <td className="px-4 py-3">
+                        <div className="flex justify-end gap-2">
+                          <button type="button" onClick={() => handleEdit(purchase)} className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium hover:bg-slate-100">Edit</button>
+                          <button type="button" onClick={() => void handleDelete(purchase.purchaseId)} className="rounded-md border border-red-200 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50">Delete</button>
+                        </div>
                       </td>
                     </tr>
-                  ))
-                )}
+                  );
+                })}
               </tbody>
             </table>
           </div>
-        </div>
+        </section>
       </div>
-    </div>
+    </main>
   );
-};
+}
 
-export default PurchasePage;

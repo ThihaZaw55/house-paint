@@ -12,7 +12,6 @@ export const UnitPage: React.FC = () => {
   const [editId, setEditId] = useState<number | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{ unitName?: string }>({});
 
-  // Hook မှ Functions များကို ခေါ်ယူခြင်း
   const { units, loading: fetchLoading, message, setMessage,error, setError, saveUnit, deleteUnit } = useUnits();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
