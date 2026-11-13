@@ -1,8 +1,8 @@
 export interface CheckoutSaleItemRequest {
   productId: number;
   quantity: number;
-  unitCostPrice: number;
-  unitSalesPrice: number;
+  costPrice: number;
+  salesPrice: number;
   discountPrice?: number;
 }
 

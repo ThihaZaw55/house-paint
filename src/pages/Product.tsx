@@ -187,10 +187,7 @@ const ProductComponent: React.FC = () => {
       <div className="mx-auto max-w-7xl space-y-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <PageTitle title="Products" />
-            <p className="mt-2 text-sm text-slate-500">
-              Manage your paint catalog, pricing, stock levels, and product media.
-            </p>
+            <PageTitle title="Products"/>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">

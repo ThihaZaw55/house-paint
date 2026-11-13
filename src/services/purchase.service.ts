@@ -1,6 +1,6 @@
 import api from "./api";
 import type { ApiResponse } from "./apiResponse";
-import type { CreatePurchase, Purchase } from "../types/purchase";
+import type { CreatePurchase, Purchase, UpdatePurchase } from "../types/purchase";
 
 export const PurchaseService = {
   getAll: async (): Promise<ApiResponse<Purchase[]>> => {
@@ -13,7 +13,7 @@ export const PurchaseService = {
     return response.data;
   },
 
-  update: async (id: number, data: CreatePurchase): Promise<ApiResponse<Purchase>> => {
+  update: async (id: number, data: CreatePurchase): Promise<ApiResponse<UpdatePurchase>> => {
     const response = await api.put<ApiResponse<Purchase>>(`/admin/purchase/${id}`, data);
     return response.data;
   },

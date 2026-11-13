@@ -68,7 +68,7 @@ export default function Sidebar() {
             icon={ShoppingBasket}
             label="Purchase"
             open={open}
-            badgeCount={cartCount}
+    
           />
         </NavLink>
 

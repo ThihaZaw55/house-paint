@@ -62,8 +62,8 @@ export default function Payment() {
       items: cart.map((item) => ({
         productId: item.id,
         quantity: Number(item.qty),
-        unitCostPrice: Number((item.costPrice ?? item.price ?? 0).toFixed(2)),
-        unitSalesPrice: Number(item.price.toFixed(2)),
+        costPrice: Number((item.costPrice ?? item.price ?? 0).toFixed(2)),
+        salePrice: Number(item.price.toFixed(2)),
         discountPrice: 0,
       })),
     };
