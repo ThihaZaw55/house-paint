@@ -184,9 +184,12 @@ export default function PurchasePage() {
     });
 
     setMessage("Item added to purchase list.");
+    setSelectedItemId("");
+    setSelectedUnitId("");
     setQuantity("");
-    setCostPrice(product.costPrice ?? "");
-    setSalePrice(product.salePrice ?? "");
+    setCostPrice("");
+    setSalePrice("");
+    
   };
 
   const removeItemFromCart = (id: string) => {
@@ -206,6 +209,11 @@ export default function PurchasePage() {
       setError("Your purchase list is empty. Add at least one item before saving.");
       return;
     }
+console.log(selectedUnitId)
+       if (selectedUnitId === "0") {
+      setError("Please select a Unit.");
+      return;
+    }
 
     if (totalCost <= 0) {
       setError("Total cost must be greater than zero before submission.");
@@ -223,7 +231,7 @@ export default function PurchasePage() {
         salePrice: Number(item.salePrice),
       })),
     };
-
+console.log(payload)
     try {
       const success = await createPurchase(payload);
       if (success) {
@@ -442,15 +450,7 @@ export default function PurchasePage() {
               </select>
             </label>
 
-            <div className="flex items-end xl:col-span-1">
-              <button
-                type="button"
-                onClick={addItemToCart}
-                className="h-11 w-full rounded-xl text-white bg-blue-500 hover:bg-blue-700 px-4 text-sm font-semibold  shadow-lg shadow-blue-500/20 transition"
-              >
-                Add Item
-              </button>
-            </div>
+            
 
             <label className="space-y-2 text-sm ">
               <span className="font-medium">Cost Price</span>
@@ -490,6 +490,16 @@ export default function PurchasePage() {
                 className={fieldClassName}
               />
             </label>
+
+            <div className="flex items-end xl:col-span-1">
+              <button
+                type="button"
+                onClick={addItemToCart}
+                className="h-11 w-full rounded-xl text-white bg-blue-500 hover:bg-blue-700 px-4 text-sm font-semibold  shadow-lg shadow-blue-500/20 transition"
+              >
+                Add Item
+              </button>
+            </div>
           </div>
 
           {selectedProduct && (

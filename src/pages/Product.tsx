@@ -85,6 +85,17 @@ const ProductComponent: React.FC = () => {
   };
 
   const handleSave = async () => {
+
+    if(form.itemId === "0" || form.itemId == "" ) {
+      setError("Select Item")
+      return;
+    }
+
+    if(form.unitId === "0" || form.unitId == "" ) {
+      setError("Select Unit")
+      return;
+    }
+    console.log("Unit "+form.unitId)
     const payload = {
       itemId: String(form.itemId),
       unitId: String(form.unitId),
@@ -96,7 +107,7 @@ const ProductComponent: React.FC = () => {
       createdDate: form.createdDate || new Date().toISOString(),
       imagePath: form.imagePath || "",
     };
-
+console.log(payload);
     const success = await saveProduct(isEditing ? form.productId : null, payload, tempFile);
     if (success) {
       handleNew();
