@@ -76,8 +76,10 @@ export const UnitPage: React.FC = () => {
     <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
       <PageTitle title="Units Management" />
 
-      <ErrorPopup error={error} setError={setError} />
-      <SuccessPopup message={message} setMessage={setMessage} />
+      {
+        error ? <ErrorPopup error={error} setError={setError} /> 
+              : <SuccessPopup message={message} setMessage={setMessage} />
+      }
 
       {/* Form Input Card */}
       <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">

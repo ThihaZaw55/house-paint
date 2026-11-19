@@ -1,10 +1,11 @@
 import { PurchaseService } from "@/services/purchase.service";
-import type { CreatePurchase, Purchase } from "@/types/purchase";
+import type { CreatePurchase, Purchase, PurchaseItemTable, PurchaseSearch } from "@/types/purchase";
 import type { AxiosError } from "axios";
 import { useEffect, useState } from "react";
 
 export default function usePurchase() {
     const [purchases, setPurchases] = useState<Purchase[]>([]);
+    const [searchResults, setSearchResults] = useState<PurchaseItemTable[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [message, setMessage] = useState<string | null>(null);
@@ -48,5 +49,26 @@ export default function usePurchase() {
         }
     }
 
-    return { purchases, createPurchase, error, isLoading, message };
+    const search = async (data: PurchaseSearch) => {
+        try{
+            setError(null);
+            setMessage(null);
+            setIsLoading(true);
+            
+            const response = await PurchaseService.search(data);
+            const list = Array.isArray(response) ? response : (response?.data ?? []);
+            console.log(list)
+            setSearchResults(list);
+            return list;
+           
+        }catch(err){
+            const axiosError = err as AxiosError<{message?: string}>;
+            const errorMessage = axiosError.response?.data?.message || "Failed to search purchase";
+            setError(errorMessage);
+        }finally{
+            setIsLoading(false);
+        }
+
+    }
+    return { purchases, createPurchase, search,searchResults, error, isLoading, message };
 }

@@ -2,6 +2,16 @@ import { useState } from "react";
 import { useCart } from "../context/CartContext";
 import PageTitle from "../components/ui/PageTitle";
 import usePayment from "../hooks/usePayment";
+import type { CompleteSaleRequest } from "@/types/payment";
+
+const PAYMENT_METHODS = [
+  { value: "CASH", label: "Cash" },
+  { value: "KPAY", label: "KPay" },
+  { value: "WAVE", label: "Wave" },
+  { value: "AYAPAY", label: "AyaPay" },
+  { value: "CBPAY", label: "CBPay" },
+  { value: "OTHER", label: "Other" },
+];
 
 const formatInvoiceDate = (dateString: string) => {
   const date = new Date(`${dateString}T00:00:00`);
@@ -30,12 +40,12 @@ export default function Payment() {
   const [phone, setPhone] = useState("");
   const [discount, setDiscount] = useState(0);
   const [cash, setCash] = useState(0);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("CASH");
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
   // const tax = subtotal * 0.05;
   const total  = subtotal - discount;
   const change = Math.max(cash - total, 0);
-
 
   const handleCompletePayment = async () => {
     if (!cart.length) {
@@ -48,14 +58,14 @@ export default function Payment() {
       return;
     }
 
-    const payload = {
-      invoice: invoiceNumber.trim() || createInvoiceNumber(saleDate || new Date().toISOString().slice(0, 10), invoiceSequence),
+    const payload: CompleteSaleRequest = {
+      invoiceNumber: invoiceNumber.trim() || createInvoiceNumber(saleDate || new Date().toISOString().slice(0, 10), invoiceSequence),
       saleDate: saleDate || new Date().toISOString().slice(0, 10),
       customerName: customer.trim() || "Walk-in Customer",
       phone: phone.trim(),
-      paymentMethod: "CASH",
-      status: "COMPLETED",
-      note: phone.trim() ? `Customer phone: ${phone.trim()}` : "Walk-in sale",
+      paymentMethod: selectedPaymentMethod,
+      // status: "COMPLETED",
+      // note: phone.trim() ? `Customer phone: ${phone.trim()}` : "Walk-in sale",
       totalAmount: Number(total.toFixed(2)),
       amountPaid: Number(cash.toFixed(2)),
       changeAmount: Number(change.toFixed(2)),
@@ -63,11 +73,11 @@ export default function Payment() {
         productId: item.id,
         quantity: Number(item.qty),
         costPrice: Number((item.costPrice ?? item.price ?? 0).toFixed(2)),
-        salePrice: Number(item.price.toFixed(2)),
+        salesPrice: Number(item.price.toFixed(2)),
         discountPrice: 0,
       })),
     };
-console.log("Complete Sale Payload:", payload);
+    console.log("Complete Sale Payload:", payload);
     const response = await completePayment(payload);
 
     if (response && response.success) {
@@ -78,6 +88,7 @@ console.log("Complete Sale Payload:", payload);
       setPhone("");
       setDiscount(0);
       setCash(0);
+      setSelectedPaymentMethod("CASH");
       clearCart();
       setMessage(response.message || "Payment completed successfully.");
     }
@@ -152,12 +163,13 @@ console.log("Complete Sale Payload:", payload);
             </div>
           </div>
 
+          <div className="grid gap-4 sm:grid-cols-2">
           <input
             type="text"
             placeholder="Customer Name"
             value={customer}
             onChange={(e) => setCustomer(e.target.value)}
-            className="w-full border p-2 rounded"
+            className=" border p-2 rounded"
           />
 
           <input
@@ -165,9 +177,9 @@ console.log("Complete Sale Payload:", payload);
             placeholder="Phone Number"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            className="w-full border p-2 rounded"
+            className=" border p-2 rounded"
           />
-
+      </div>
           <hr />
 
           <div className="space-y-2">
@@ -183,7 +195,7 @@ console.log("Complete Sale Payload:", payload);
                 value={discount}
                 min={0}
                 onChange={(e) => setDiscount(Number(e.target.value) || 0)}
-                className="border w-24 p-1 rounded text-right"
+                className="border w-50 p-1 rounded text-right"
               />
             </div>
 
@@ -196,13 +208,29 @@ console.log("Complete Sale Payload:", payload);
 
           <div className="space-y-2">
             <div className="flex justify-between items-center">
+              <span>Payment Method</span>
+              <select
+                name="paymentMethod"
+                value={selectedPaymentMethod}
+                onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+                className="h-10 w-50 rounded-xl border border-slate-300 bg-slate-50 px-3 text-sm text-slate-800 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+              >
+                {PAYMENT_METHODS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex justify-between items-center">
               <span>Cash Received</span>
               <input
                 type="number"
                 value={cash}
                 min={0}
                 onChange={(e) => setCash(Number(e.target.value) || 0)}
-                className="border w-32 p-1 rounded text-right"
+                className="border w-50 p-1 rounded text-right"
               />
             </div>
 

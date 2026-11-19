@@ -12,8 +12,8 @@ export interface CompleteSaleRequest {
   customerName: string;
   phone?: string;
   paymentMethod: string;
-  status: string;
-  note?: string;
+ // status: string;
+  //note?: string;
   totalAmount: number;
   amountPaid: number;
   changeAmount: number;
@@ -26,4 +26,9 @@ export interface CompleteSaleResponse {
   invoiceUuid?: string;
   totalAmount?: number;
   changeAmount?: number;
+}
+
+export interface PaymentMethod {
+  paymentMethodID: string | number;
+  pyamentMethod: string
 }

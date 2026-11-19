@@ -1,8 +1,14 @@
 import api from "./api";
 import type { ApiResponse } from "./apiResponse";
-import type { CreatePurchase, Purchase, UpdatePurchase } from "../types/purchase";
+import type { CreatePurchase, Purchase, PurchaseItemTable, PurchaseSearch, UpdatePurchase } from "../types/purchase";
 
 export const PurchaseService = {
+
+  search: async (data: PurchaseSearch): Promise<ApiResponse<PurchaseItemTable[]>> =>{
+    const response = await api.get<ApiResponse<PurchaseItemTable[]>>("/admin/purchase/search", {params: data});
+    return response.data;
+  },
+
   getAll: async (): Promise<ApiResponse<Purchase[]>> => {
     const response = await api.get<ApiResponse<Purchase[]>>("/admin/purchase");
     return response.data;
