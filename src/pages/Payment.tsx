@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import PageTitle from "../components/ui/PageTitle";
 import usePayment from "../hooks/usePayment";
@@ -22,18 +23,19 @@ const formatInvoiceDate = (dateString: string) => {
   return `${day}${month}${year}`;
 };
 
-const createInvoiceNumber = (dateString: string, sequence: number) => {
+const createinvoice = (dateString: string, sequence: number) => {
   return `${String(sequence).padStart(4, "0")}${formatInvoiceDate(dateString)}`;
 };
 
 export default function Payment() {
+  const navigate = useNavigate();
   const { cart, removeFromCart, clearCart } = useCart();
   const { completePayment, isLoading, error, message, setError, setMessage } = usePayment();
 
   const [invoiceSequence, setInvoiceSequence] = useState(1);
-  const [invoiceNumber, setInvoiceNumber] = useState(() => {
+  const [invoice, setInvoice] = useState(() => {
     const today = new Date().toISOString().slice(0, 10);
-    return createInvoiceNumber(today, 1);
+    return createinvoice(today, 1);
   });
   const [saleDate, setSaleDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [customer, setCustomer] = useState("");
@@ -59,15 +61,16 @@ export default function Payment() {
     }
 
     const payload: CompleteSaleRequest = {
-      invoiceNumber: invoiceNumber.trim() || createInvoiceNumber(saleDate || new Date().toISOString().slice(0, 10), invoiceSequence),
+      invoice: invoice|| createinvoice(saleDate || new Date().toISOString().slice(0, 10), invoiceSequence),
       saleDate: saleDate || new Date().toISOString().slice(0, 10),
+      paymentDate: saleDate || new Date().toISOString().slice(0, 10),
       customerName: customer.trim() || "Walk-in Customer",
       phone: phone.trim(),
       paymentMethod: selectedPaymentMethod,
-      // status: "COMPLETED",
-      // note: phone.trim() ? `Customer phone: ${phone.trim()}` : "Walk-in sale",
+       status: "COMPLETED",
+       note: phone.trim() ? `Customer phone: ${phone.trim()}` : "Walk-in sale",
       totalAmount: Number(total.toFixed(2)),
-      amountPaid: Number(cash.toFixed(2)),
+      amount: Number(cash.toFixed(2)),
       changeAmount: Number(change.toFixed(2)),
       items: cart.map((item) => ({
         productId: item.id,
@@ -83,7 +86,7 @@ export default function Payment() {
     if (response && response.success) {
       const nextSequence = invoiceSequence + 1;
       setInvoiceSequence(nextSequence);
-      setInvoiceNumber(createInvoiceNumber(saleDate || new Date().toISOString(), nextSequence));
+      setInvoice(createinvoice(saleDate || new Date().toISOString(), nextSequence));
       setCustomer("");
       setPhone("");
       setDiscount(0);
@@ -91,6 +94,18 @@ export default function Payment() {
       setSelectedPaymentMethod("CASH");
       clearCart();
       setMessage(response.message || "Payment completed successfully.");
+
+      const voucherReference =
+        response.data?.paymentId?.toString() ||
+        response.data?.saleId?.toString() ||
+        response.data?.invoiceUuid ||
+        payload.invoice ||
+        "";
+
+      navigate("/voucher", {
+        replace: true,
+        state: { reference: voucherReference },
+      });
     }
   };
 
@@ -128,8 +143,8 @@ export default function Payment() {
                   </button>
                 </div>
               </div>
-            ))
-          )}
+            )))
+          }
         </div>
 
         <div className="bg-white p-6 rounded-xl shadow space-y-4">
@@ -141,7 +156,7 @@ export default function Payment() {
               <input
                 type="text"
                 placeholder="000105112026"
-                value={invoiceNumber}
+                value={invoice}
                 className="w-full border p-2 rounded bg-slate-100"
                 readOnly
               />
@@ -156,7 +171,7 @@ export default function Payment() {
                   const nextDate = e.target.value;
                   setSaleDate(nextDate);
                   setInvoiceSequence(1);
-                  setInvoiceNumber(createInvoiceNumber(nextDate || new Date().toISOString().slice(0, 10), 1));
+                  setInvoice(createinvoice(nextDate || new Date().toISOString().slice(0, 10), 1));
                 }}
                 className="w-full border p-2 rounded"
               />

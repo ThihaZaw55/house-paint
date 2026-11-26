@@ -46,11 +46,13 @@ export default function ProductCard(props: ProductCardProps) {
 
   return (
     <div className="relative flex h-full flex-col rounded-3xl border border-slate-200 bg-white/80 p-3 shadow-lg shadow-slate-200/60 transition duration-300 hover:-translate-y-1 hover:shadow-xl">
-      {soldOut && (
+      {soldOut ? (
         <span className="absolute left-3 top-3 rounded-full bg-red-500 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white">
           Out of Stock
         </span>
-      )}
+      ) : <span className="absolute left-3 top-3 rounded-full bg-emerald-400 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white">
+          {quantity} in stock
+        </span>}
 
       <div className="overflow-hidden rounded-2xl bg-slate-100">
         <img

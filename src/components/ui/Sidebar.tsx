@@ -9,6 +9,7 @@ import {
   BanknoteArrowUp,
   ShoppingBasket,
   Menu,
+  ReceiptText,
 } from "lucide-react";
 import { useState } from "react";
 import Logo from "../../assets/Logo.jpg";
@@ -104,6 +105,15 @@ export default function Sidebar() {
           to="/income"
         >
           <SidebarItem icon={BanknoteArrowUp} label="Income" open={open} />
+        </NavLink>
+
+        <NavLink
+          className={({ isActive }) =>
+            `block rounded-lg ${isActive ? "bg-gray-100" : "hover:bg-gray-100"}`
+          }
+          to="/voucher"
+        >
+          <SidebarItem icon={ReceiptText} label="Voucher" open={open} />
         </NavLink>
 
         {/* <NavLink

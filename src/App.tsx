@@ -11,6 +11,7 @@ import Error from "./components/404";
 import { HashRouter, Routes, Route } from "react-router-dom";
 import { CartProvider } from "./context/CartContext";
 import PersonalInfoPage from "./pages/PersonalInfoPage";
+import Voucher from "./pages/Voucher";
 
 export default function App() {
   return (
@@ -27,6 +28,7 @@ export default function App() {
             <Route path="payment" element={<Payment />}></Route>
             <Route path="income" element={<Income />}></Route>
             <Route path="personalInfoPage" element={<PersonalInfoPage />}></Route>
+            <Route path="voucher" element={<Voucher />}></Route>
             <Route path="*" element={<Error />} />
           </Route>
         </Routes>
