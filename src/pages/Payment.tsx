@@ -24,7 +24,26 @@ const formatInvoiceDate = (dateString: string) => {
 };
 
 const createinvoice = (dateString: string, sequence: number) => {
-  return `${String(sequence).padStart(4, "0")}${formatInvoiceDate(dateString)}`;
+  return `${String(sequence).padStart(5, "0")}${formatInvoiceDate(dateString)}`;
+};
+
+const INVOICE_SEQUENCE_STORAGE_KEY = "house-paint-invoice-sequences";
+
+const getLocalDateString = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const loadInvoiceSequences = (): Record<string, number> => {
+  try {
+    const stored = localStorage.getItem(INVOICE_SEQUENCE_STORAGE_KEY);
+    return stored ? JSON.parse(stored) : {};
+  } catch {
+    return {};
+  }
 };
 
 export default function Payment() {
@@ -32,12 +51,16 @@ export default function Payment() {
   const { cart, removeFromCart, clearCart } = useCart();
   const { completePayment, isLoading, error, message, setError, setMessage } = usePayment();
 
-  const [invoiceSequence, setInvoiceSequence] = useState(1);
-  const [invoice, setInvoice] = useState(() => {
-    const today = new Date().toISOString().slice(0, 10);
-    return createinvoice(today, 1);
+  const [saleDate, setSaleDate] = useState(getLocalDateString);
+  const [invoiceSequence, setInvoiceSequence] = useState(() => {
+    const sequences = loadInvoiceSequences();
+    return sequences[getLocalDateString()] ?? 1;
   });
-  const [saleDate, setSaleDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [invoice, setInvoice] = useState(() => {
+    const today = getLocalDateString();
+    const sequences = loadInvoiceSequences();
+    return createinvoice(today, sequences[today] ?? 1);
+  });
   const [customer, setCustomer] = useState("");
   const [phone, setPhone] = useState("");
   const [discount, setDiscount] = useState(0);
@@ -82,11 +105,18 @@ export default function Payment() {
     };
     console.log("Complete Sale Payload:", payload);
     const response = await completePayment(payload);
-
+    const voucherData = response?.data;
+    console.log("Complete Sale Response:", voucherData);
     if (response && response.success) {
       const nextSequence = invoiceSequence + 1;
+      const updatedSequences = {
+        ...loadInvoiceSequences(),
+        [saleDate]: nextSequence,
+      };
+
+      localStorage.setItem(INVOICE_SEQUENCE_STORAGE_KEY, JSON.stringify(updatedSequences));
       setInvoiceSequence(nextSequence);
-      setInvoice(createinvoice(saleDate || new Date().toISOString(), nextSequence));
+      setInvoice(createinvoice(saleDate, nextSequence));
       setCustomer("");
       setPhone("");
       setDiscount(0);
@@ -95,16 +125,17 @@ export default function Payment() {
       clearCart();
       setMessage(response.message || "Payment completed successfully.");
 
-      const voucherReference =
-        response.data?.paymentId?.toString() ||
-        response.data?.saleId?.toString() ||
-        response.data?.invoiceUuid ||
-        payload.invoice ||
-        "";
+      
+      // const voucherReference =
+      //   response.data?.paymentId?.toString() ||
+      //   response.data?.saleId?.toString() ||
+      //   response.data?.invoiceUuid ||
+      //   payload.invoice ||
+      //   "";
 
       navigate("/voucher", {
         replace: true,
-        state: { reference: voucherReference },
+        state: { reference: voucherData },
       });
     }
   };
@@ -155,7 +186,7 @@ export default function Payment() {
               <label className="mb-1 block text-sm font-medium text-slate-600">Invoice No</label>
               <input
                 type="text"
-                placeholder="000105112026"
+                placeholder=""
                 value={invoice}
                 className="w-full border p-2 rounded bg-slate-100"
                 readOnly
@@ -168,10 +199,13 @@ export default function Payment() {
                 type="date"
                 value={saleDate}
                 onChange={(e) => {
-                  const nextDate = e.target.value;
+                  const nextDate = e.target.value || getLocalDateString();
+                  const sequences = loadInvoiceSequences();
+                  const nextSequence = sequences[nextDate] ?? 1;
+
                   setSaleDate(nextDate);
-                  setInvoiceSequence(1);
-                  setInvoice(createinvoice(nextDate || new Date().toISOString().slice(0, 10), 1));
+                  setInvoiceSequence(nextSequence);
+                  setInvoice(createinvoice(nextDate, nextSequence));
                 }}
                 className="w-full border p-2 rounded"
               />

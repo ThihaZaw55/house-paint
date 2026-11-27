@@ -29,19 +29,41 @@ export const Voucher: React.FC = () => {
 
   const location = useLocation();
 
-  useEffect(() => {
-    const navigationState = location.state as { reference?: string } | null;
+useEffect(() => {
+    const navigationState = location.state as {
+      reference?: string | VoucherResponse;
+      voucher?: VoucherResponse;
+    } | null;
     const searchParams = new URLSearchParams(location.search);
-    const ref = navigationState?.reference || searchParams.get("reference") || "";
+    const rawRef =
+      navigationState?.voucher ??
+      navigationState?.reference ??
+      searchParams.get("reference") ??
+      "";
 
-    if (ref) {
-      setReference(ref);
-      handleSearch(ref);
+    console.log("Voucher reference from location:", rawRef);
+
+    if (!rawRef) return;
+
+    // 1. Payment page မှ VoucherResponse object တစ်ခုလုံး ပို့လိုက်လျှင် တိုက်ရိုက်ပြမည်
+    if (typeof rawRef === "object") {
+      setVoucher(rawRef);
+      setReference(rawRef.invoice || String(rawRef.paymentId || rawRef.saleId || ""));
+      setError("");
+      return;
+    }
+
+    // 2. String (ဥပမာ- URL query ?reference=000227112026) ဖြင့် လာလျှင် API ခေါ်ရှာမည်
+    const refString = String(rawRef).trim();
+    if (refString) {
+      setReference(refString);
+      handleSearch(refString);
     }
   }, [location.search, location.state]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSearch = async (ref: string) => {
-    if (!ref.trim()) {
+    const query = String(ref ?? "").trim();
+    if (!query) {
       setError("Enter an invoice number, sale ID, or payment ID.");
       return;
     }
@@ -50,9 +72,9 @@ export const Voucher: React.FC = () => {
     setError("");
 
     try {
-      const result = await PaymentService.getVoucher(ref.trim());
+      const result = await PaymentService.getVoucher(query);
       const data = "data" in result ? result.data : result;
-
+      console.log("Voucher data fetched:", data);
       if (!data) {
         throw new Error("Voucher not found.");
       }
